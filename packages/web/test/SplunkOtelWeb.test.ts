@@ -28,7 +28,7 @@ describe('SplunkOtelWeb', () => {
     it('should be settable via constructor and then readable', () => {
       SplunkRum.init({
         applicationName: 'app-name',
-        beaconEndpoint: 'https://beacon',
+        endpoint: 'https://beacon',
         rumAccessToken: '<token>',
         globalAttributes: {
           key1: 'value1',
@@ -42,7 +42,7 @@ describe('SplunkOtelWeb', () => {
     it('should be patchable via setGlobalAttributes and then readable', () => {
       SplunkRum.init({
         applicationName: 'app-name',
-        beaconEndpoint: 'https://beacon',
+        endpoint: 'https://beacon',
         rumAccessToken: '<token>',
         globalAttributes: {
           key1: 'value1',
@@ -65,7 +65,7 @@ describe('SplunkOtelWeb', () => {
     it('should notify about changes via setGlobalAttributes', async () => {
       SplunkRum.init({
         applicationName: 'app-name',
-        beaconEndpoint: 'https://beacon',
+        endpoint: 'https://beacon',
         rumAccessToken: '<token>',
         globalAttributes: {
           key1: 'value1',
@@ -103,7 +103,7 @@ describe('SplunkOtelWeb', () => {
 
       SplunkRum.init({
         applicationName: 'app-name',
-        beaconEndpoint: 'https://beacon',
+        endpoint: 'https://beacon',
         rumAccessToken: '<token>'
       });
       expect(SplunkRum.getSessionId()).to.match(/[0-9a-f]{32}/);
@@ -117,7 +117,7 @@ describe('SplunkOtelWeb', () => {
 
       SplunkRum.init({
         applicationName: 'app-name',
-        beaconEndpoint: 'https://beacon',
+        endpoint: 'https://beacon',
         rumAccessToken: '<token>'
       });
       SplunkRum.addEventListener(
@@ -141,7 +141,7 @@ describe('SplunkOtelWeb', () => {
 
       SplunkRum.init({
         applicationName: 'app-name',
-        beaconEndpoint: 'https://beacon',
+        endpoint: 'https://beacon',
         rumAccessToken: '<token>'
       });
       expect(SplunkRum.inited).to.eq(true, 'Should be true after creating.');

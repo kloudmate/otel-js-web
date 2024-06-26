@@ -39,10 +39,10 @@ async function handleSplunkRumRequest(app) {
 
 function generateSplunkRumTags () {
   const options = {
-    beaconEndpoint: '/api/v2/spans',
+    endpoint: '/api/v2/spans',
     applicationName: 'splunk-otel-js-dummy-app',
     debug: false,
-  };
+  }
 
   return render(SPLUNK_RUM_TAGS_TEMPLATE, {
     file: '/dist/artifacts/splunk-otel-web.js',
@@ -59,3 +59,4 @@ module.exports = {
   generateSplunkRumTags,
   getSplunkRumContent,
 };
+

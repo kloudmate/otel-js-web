@@ -2,8 +2,8 @@
 <head>
   <script src="/dist/splunk-otel-web.js"></script>
   <script>
-    window.SplunkRum && window.SplunkRum.init({ 
-      beaconEndpoint: '/api/v2/spans', 
+    window.SplunkRum && window.SplunkRum.init({
+      endpoint: '/api/v2/spans',
       applicationName: 'splunk-otel-js-dummy-app',
       debug: true
     });

@@ -35,11 +35,11 @@ const {
 } = require('../../test-utils/server/index');
 const { generateServerTiming, setServerTimingHeader } = require('../../test-utils/server/serverTiming');
 
-function getRumScript({ beaconHost, beaconPort }) {
+function getRumScript({ endpoint }) {
   return `
     <script src="https://${beaconHost}:${beaconPort}/dist/splunk-otel-web.js"></script>
     <script>
-      SplunkRum.init({"beaconEndpoint":"https://${beaconHost}:${beaconPort}/api/v2/spans", applicationName:"perf-test-app", debug:true});
+      SplunkRum.init({"endpoint":"${endpoint}", applicationName:"perf-test-app", debug:true});
     </script>
   `;
 }
@@ -47,8 +47,8 @@ function getRumScript({ beaconHost, beaconPort }) {
 function startWebsocketServer({ enableHttps, listener }) {
   const { server, serverOptions } = buildBasicLocalServer({ enableHttps, listener });
   return new Promise((resolve, reject) => {
-    const websocketServer = new WebSocket.Server({ server });    
-    
+    const websocketServer = new WebSocket.Server({ server });
+
     server.on('listening', () => {
       resolve({
         close: buildPromisifiedClose(server),
@@ -97,7 +97,7 @@ async function run({ onSpanReceived, enableHttps, port }) {
   app.engine('ejs', renderFile);
   app.set('views', path.resolve(__dirname, '..'));
 
-  app.use(bodyParser.json({ type: 'text/plain' }));  
+  app.use(bodyParser.json({ type: 'text/plain' }));
   app.use(bodyParser.json({ type: 'application/json' }));
   app.use(compression());
 
@@ -147,15 +147,15 @@ async function run({ onSpanReceived, enableHttps, port }) {
 
   app.get('/no-server-timings', (_, res) => { res.sendStatus(200); });
 
-  const { 
-    close: closeHttpServer, 
-    address: { port: httpPort }, 
+  const {
+    close: closeHttpServer,
+    address: { port: httpPort },
     serverOptions: httpOptions,
   } = await startLocalHttpServer({ enableHttps, listener: app, port });
 
-  const { 
-    close: closeWebsocketServer, 
-    address: { port: wsPort }, 
+  const {
+    close: closeWebsocketServer,
+    address: { port: wsPort },
     serverOptions: wsOptions,
     websocketServer,
   } = await startWebsocketServer({ enableHttps });
@@ -164,7 +164,7 @@ async function run({ onSpanReceived, enableHttps, port }) {
       console.log('received: %s', message);
       ws.send(message);
     });
-  
+
     ws.send('connected');
   });
 

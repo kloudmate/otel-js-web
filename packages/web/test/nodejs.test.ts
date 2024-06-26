@@ -21,7 +21,7 @@ describe('Node.js basic support', () => {
   it('Can call init', () => {
     SplunkRum.init({
       applicationName: 'test-app',
-      beaconEndpoint: 'https://localhost/events',
+      endpoint: 'https://localhost/events',
       rumAccessToken: 'example1234'
     });
   });
