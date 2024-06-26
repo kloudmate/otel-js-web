@@ -356,12 +356,13 @@ export const SplunkRum: SplunkOtelWebType = {
 
     const resourceAttrs: ResourceAttributes = {
       ...SDK_INFO,
-      [SemanticResourceAttributes.TELEMETRY_SDK_NAME]: '@splunk/otel-web',
+      [SemanticResourceAttributes.TELEMETRY_SDK_NAME]: '@kloudmate/otel-web',
       [SemanticResourceAttributes.TELEMETRY_SDK_VERSION]: VERSION,
       // Splunk specific attributes
       'splunk.rumVersion': VERSION,
       'splunk.scriptInstance': instanceId,
       'app': applicationName,
+      'userAgent': navigator.userAgent
     };
 
     const syntheticsRunId = getSyntheticsRunId();

@@ -34,7 +34,7 @@ export type SplunkRumRecorderConfig = RRWebOptions & {
   /** Destination for the captured data */
   beaconEndpoint?: string;
 
-  /** Destination for the captured data 
+  /** Destination for the captured data
    * @deprecated Use beaconEndpoint
    */
   beaconUrl?: string;
@@ -162,11 +162,11 @@ const SplunkRumRecorder = {
     const exporter = new OTLPLogExporter({
       beaconUrl: exportUrl,
       debug,
-      headers, 
+      headers,
       getResourceAttributes() {
         return {
           ...resource.attributes,
-          'splunk.rumSessionId': SplunkRum.getSessionId()!
+          'kloudmate.rumSessionId': SplunkRum.getSessionId()!
         };
       }
     });
