@@ -376,6 +376,13 @@ export const SplunkRum: SplunkOtelWebType = {
       resource: this.resource,
     });
 
+    fetch(`https://cdn.kloudmate.com/${VERSION}/splunk-otel-web.js`, {
+      method: 'HEAD'
+    }).then(resp => {
+      provider.resource.attributes['country'] = resp.headers.get("Cloudfront-Viewer-Country-Name") || undefined
+      provider.resource.attributes['city'] = resp.headers.get("CloudFront-Viewer-City") || undefined
+    })
+
     const instrumentations = INSTRUMENTATIONS.map(({ Instrument, confKey, disable }) => {
       const pluginConf = getPluginConfig(processedOptions.instrumentations[confKey], pluginDefaults, disable);
       if (pluginConf) {
