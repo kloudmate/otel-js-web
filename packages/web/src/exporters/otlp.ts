@@ -16,13 +16,14 @@ limitations under the License.
 
 import { diag } from '@opentelemetry/api';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { NOOP_ATTRIBUTES_TRANSFORMER, NATIVE_XHR_SENDER, NATIVE_BEACON_SENDER, SplunkExporterConfig } from './common';
+import { NOOP_ATTRIBUTES_TRANSFORMER, NATIVE_XHR_SENDER, NATIVE_FETCH_SENDER, SplunkExporterConfig } from './common';
 import { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 
 export class SplunkOTLPTraceExporter extends OTLPTraceExporter {
   protected readonly _onAttributesSerializing: SplunkExporterConfig['onAttributesSerializing'];
   protected readonly _xhrSender: SplunkExporterConfig['xhrSender'] = NATIVE_XHR_SENDER;
-  protected readonly _beaconSender: SplunkExporterConfig['beaconSender'] = typeof navigator !== 'undefined' && navigator.sendBeacon ? NATIVE_BEACON_SENDER : undefined;
+  // sendbeancon cannot send custom headers which is required for auth, use fetch with keepalive instead
+  protected readonly _beaconSender: SplunkExporterConfig['beaconSender'] = typeof navigator !== 'undefined' && navigator.sendBeacon ? NATIVE_FETCH_SENDER : undefined;
 
   constructor(options: SplunkExporterConfig) {
     super(options);
@@ -48,7 +49,10 @@ export class SplunkOTLPTraceExporter extends OTLPTraceExporter {
 
     // Changed: Determine which exporter to use at the time of export
     if (document.hidden && this._beaconSender && body.length <= 64000) {
-      this._beaconSender(this.url, body, { type: 'application/json' });
+      this._beaconSender(this.url, body, {
+        'Content-Type': 'application/json',
+        ...this.headers,
+      });
     } else {
       this._xhrSender!(this.url, body, {
         // These headers may only be necessary for otel's collector,

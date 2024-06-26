@@ -189,13 +189,6 @@ const OPTIONS_DEFAULTS: SplunkOtelWebConfigInternal = {
   rumAccessToken: undefined,
 };
 
-function migrateConfigOption(config: SplunkOtelWebConfig, from: keyof SplunkOtelWebConfig, to: keyof SplunkOtelWebConfig) {
-  if (from in config && !(to in config && config[to] !== OPTIONS_DEFAULTS[to])) {
-    // @ts-expect-error There's no way to type this right
-    config[to] = config[from];
-  }
-}
-
 const INSTRUMENTATIONS = [
   { Instrument: SplunkDocumentLoadInstrumentation, confKey: 'document', disable: false },
   { Instrument: SplunkXhrPlugin, confKey: 'xhr', disable: false },
@@ -220,10 +213,12 @@ export const INSTRUMENTATIONS_ALL_DISABLED: SplunkOtelWebOptionsInstrumentations
 
 function buildExporter(options: SplunkOtelWebConfigInternal) {
   const url = `${options.endpoint}/v1/traces`;
+  const authHeaderKey: string = 'Authorization'
   return options.exporter.factory({
     url,
     otlp: true,
     onAttributesSerializing: options.exporter.onAttributesSerializing,
+    headers: { [authHeaderKey]: options.rumAccessToken } as Record<string, string>
   });
 }
 

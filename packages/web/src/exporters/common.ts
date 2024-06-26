@@ -22,6 +22,7 @@ export interface SplunkExporterConfig {
   onAttributesSerializing?: (attributes: Attributes, span: ReadableSpan) => Attributes,
   xhrSender?: (url: string, data: string, headers?: Record<string, string>) => void,
   beaconSender?: (url: string, data: string, headers?: Record<string, string>) => void,
+  headers?: Record<string, string>;
 }
 
 export function NOOP_ATTRIBUTES_TRANSFORMER(attributes: Attributes): Attributes {
@@ -42,4 +43,17 @@ export function NATIVE_XHR_SENDER(url: string, data: string, headers?: Record<st
 export function NATIVE_BEACON_SENDER(url: string, data: string, blobPropertyBag?: BlobPropertyBag): void {
   const payload = blobPropertyBag ? new Blob([data], blobPropertyBag) : data;
   navigator.sendBeacon(url, payload);
+}
+
+export function NATIVE_FETCH_SENDER(
+  url: string,
+  data: string,
+  headers?: Record<string, string>
+): void {
+  fetch(url, {
+    method: 'POST',
+    headers,
+    keepalive: true,
+    body: data,
+  })
 }
