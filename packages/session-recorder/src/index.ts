@@ -32,35 +32,13 @@ type RRWebOptions = Parameters<typeof record>[0];
 
 export type SplunkRumRecorderConfig = RRWebOptions & {
   /** Destination for the captured data */
-  beaconEndpoint?: string;
-
-  /** Destination for the captured data
-   * @deprecated Use beaconEndpoint
-   */
-  beaconUrl?: string;
-
-  /**
-   * The name of your organization’s realm. Automatically configures beaconUrl with correct URL
-   */
-  realm?: string;
+  endpoint?: string;
 
   /**
    * RUM authorization token for data sending. Please make sure this is a token
    * with only RUM scope as it's visible to every user of your app
    **/
   rumAccessToken?: string;
-
-  /**
-   * RUM authorization token for data sending. Please make sure this is a token
-   * with only RUM scope as it's visible to every user of your app
-   * @deprecated Renamed to `rumAccessToken`
-   **/
-  rumAuth?: string;
-
-  /**
-   * @deprecated Use RUM token in rumAccessToken
-  */
-  apiToken?: string;
 
   /** Debug mode */
   debug?: boolean;
@@ -71,15 +49,6 @@ function migrateConfigOption(config: SplunkRumRecorderConfig, from: keyof Splunk
     // @ts-expect-error There's no way to type this right
     config[to] = config[from];
   }
-}
-
-/**
- * Update configuration based on configuration option renames
- */
-function migrateConfig(config: SplunkRumRecorderConfig) {
-  migrateConfigOption(config, 'beaconUrl', 'beaconEndpoint');
-  migrateConfigOption(config, 'rumAuth', 'rumAccessToken');
-  return config;
 }
 
 // Hard limit of 4 hours of maximum recording during one session
@@ -124,9 +93,7 @@ const SplunkRumRecorder = {
 
     const resource = SplunkRum.resource;
 
-    migrateConfig(config);
-
-    const { apiToken, beaconEndpoint, debug, realm, rumAccessToken, ...rrwebConf } = config;
+    const { endpoint, debug, rumAccessToken, ...rrwebConf } = config;
     tracer = trace.getTracer('splunk.rr-web', VERSION);
     const span = tracer.startSpan('record init');
 
@@ -136,27 +103,17 @@ const SplunkRumRecorder = {
     }
     span.end();
 
-    let exportUrl = beaconEndpoint;
-    if (realm) {
-      if (!exportUrl) {
-        exportUrl = `https://rum-ingest.${realm}.signalfx.com/v1/rumreplay`;
-      } else {
-        console.warn('Splunk Session Recorder: Realm value ignored (beaconEndpoint has been specified)');
-      }
-    }
+    let exportUrl = `${endpoint}/v1/logs`;
 
     if (!exportUrl) {
-      console.error('Session recorder could not determine `exportUrl`, please ensure that `realm` or `beaconEndpoint` is specified and try again');
+      console.error('Session recorder could not determine `exportUrl`, please ensure that `realm` or `endpoint` is specified and try again');
       return;
     }
 
     const headers = {};
-    if (apiToken) {
-      headers['X-SF-Token'] = apiToken;
-    }
 
     if (rumAccessToken) {
-      exportUrl += `?auth=${rumAccessToken}`;
+      headers['Authorization'] = rumAccessToken;
     }
 
     const exporter = new OTLPLogExporter({
@@ -203,7 +160,7 @@ const SplunkRumRecorder = {
           return;
         }
 
-        const time = event.timestamp;
+        const time = event.timestamp * 1000 * 1000; //convert ms to ns
         const eventI = eventCounter++;
         // Research found that stringifying the rr-web event here is
         // more efficient for otlp + gzip exporting
