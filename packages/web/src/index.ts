@@ -24,7 +24,7 @@ import {
   SpanExporter,
   SpanProcessor,
   BufferConfig,
-  AlwaysOffSampler, AlwaysOnSampler, ParentBasedSampler, 
+  AlwaysOffSampler, AlwaysOnSampler, ParentBasedSampler,
 } from '@opentelemetry/sdk-trace-base';
 import { WebTracerConfig } from '@opentelemetry/sdk-trace-web';
 import { Attributes, diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
@@ -96,33 +96,17 @@ export interface SplunkOtelWebExporterOptions {
    * One potential use case of this method is to remove PII from the attributes.
    */
   onAttributesSerializing?: (attributes: Attributes, span: ReadableSpan) => Attributes;
-
-  /**
-   * Switch from zipkin to otlp for exporting
-   */
-  otlp?: boolean;
 }
 
 export interface SplunkOtelWebConfig {
   /** Allows http beacon urls */
   allowInsecureBeacon?: boolean;
 
-  /** Application name
-   * @deprecated Renamed to `applicationName`
-   */
-  app?: string;
-
   /** Application name */
   applicationName?: string;
 
-  /**
-   * Destination for the captured data
-   * @deprecated Renamed to `beaconEndpoint`, or use realm
-   */
-  beaconUrl?: string;
-
   /** Destination for the captured data */
-  beaconEndpoint?: string;
+  endpoint?: string;
 
   /** Options for context manager */
   context?: ContextManagerConfig;
@@ -137,12 +121,6 @@ export interface SplunkOtelWebConfig {
    * Sets a value for the `environment` attribute (persists through calls to `setGlobalAttributes()`)
    * */
   deploymentEnvironment?: string;
-
-  /**
-   * Sets a value for the `environment` attribute (persists through calls to `setGlobalAttributes()`)
-   * @deprecated Renamed to `deploymentEnvironment`
-   */
-  environment?: string;
 
   /**
    * Sets a value for the 'app.version' attribute
@@ -163,18 +141,6 @@ export interface SplunkOtelWebConfig {
 
   /** Configuration for instrumentation modules. */
   instrumentations?: SplunkOtelWebOptionsInstrumentations;
-
-  /**
-   * The name of your organization’s realm. Automatically configures beaconUrl with correct URL
-   */
-  realm?: string;
-
-  /**
-   * Publicly-visible `rumAuth` value.  Please do not paste any other access token or auth value into here, as this
-   * will be visible to every user of your app
-   * @deprecated Renamed to rumAccessToken
-   */
-  rumAuth?: string;
 
   /**
    * Publicly-visible rum access token value. Please do not paste any other access token or auth value into here, as this
@@ -205,7 +171,7 @@ interface SplunkOtelWebConfigInternal extends SplunkOtelWebConfig {
 
 const OPTIONS_DEFAULTS: SplunkOtelWebConfigInternal = {
   applicationName: 'unknown-browser-app',
-  beaconEndpoint: undefined,
+  endpoint: undefined,
   bufferTimeout: 4000, //millis, tradeoff between batching and loss of spans by not sending before page close
   bufferSize: 50, // spans, tradeoff between batching and hitting sendBeacon invididual limits
   instrumentations: {},
@@ -230,17 +196,6 @@ function migrateConfigOption(config: SplunkOtelWebConfig, from: keyof SplunkOtel
   }
 }
 
-/**
- * Update configuration based on configuration option renames
- */
-function migrateConfig(config: SplunkOtelWebConfig) {
-  migrateConfigOption(config, 'app', 'applicationName');
-  migrateConfigOption(config, 'beaconUrl', 'beaconEndpoint');
-  migrateConfigOption(config, 'environment', 'deploymentEnvironment');
-  migrateConfigOption(config, 'rumAuth', 'rumAccessToken');
-  return config;
-}
-
 const INSTRUMENTATIONS = [
   { Instrument: SplunkDocumentLoadInstrumentation, confKey: 'document', disable: false },
   { Instrument: SplunkXhrPlugin, confKey: 'xhr', disable: false },
@@ -262,19 +217,12 @@ export const INSTRUMENTATIONS_ALL_DISABLED: SplunkOtelWebOptionsInstrumentations
     { 'webvitals': false },
   );
 
-function getBeaconEndpointForRealm(config: SplunkOtelWebConfigInternal) {
-  if (config.exporter?.otlp) {
-    return `https://rum-ingest.${config.realm}.signalfx.com/v1/rumotlp`;
-  }
-
-  return `https://rum-ingest.${config.realm}.signalfx.com/v1/rum`;
-}
 
 function buildExporter(options: SplunkOtelWebConfigInternal) {
-  const url = options.beaconEndpoint + (options.rumAccessToken ? '?auth='+options.rumAccessToken : '');
+  const url = `${options.endpoint}/v1/traces`;
   return options.exporter.factory({
     url,
-    otlp: options.exporter.otlp,
+    otlp: true,
     onAttributesSerializing: options.exporter.onAttributesSerializing,
   });
 }
@@ -377,7 +325,6 @@ export const SplunkRum: SplunkOtelWebType = {
     const processedOptions: SplunkOtelWebConfigInternal = Object.assign(
       {},
       OPTIONS_DEFAULTS,
-      migrateConfig(options),
       {
         exporter: Object.assign({}, OPTIONS_DEFAULTS.exporter, options.exporter),
       },
@@ -388,18 +335,11 @@ export const SplunkRum: SplunkOtelWebType = {
       return;
     }
 
-    if (processedOptions.realm) {
-      if (!processedOptions.beaconEndpoint) {
-        processedOptions.beaconEndpoint = getBeaconEndpointForRealm(processedOptions);
-      } else {
-        diag.warn('SplunkRum: Realm value ignored (beaconEndpoint has been specified)');
-      }
-    }
 
     if (!processedOptions.debug) {
-      if (!processedOptions.beaconEndpoint) {
-        throw new Error('SplunkRum.init( {beaconEndpoint: \'https://something\'} ) is required.');
-      } else if(!processedOptions.beaconEndpoint.startsWith('https') && !processedOptions.allowInsecureBeacon) {
+      if (!processedOptions.endpoint) {
+        throw new Error('SplunkRum.init( {endpoint: \'https://something\'} ) is required.');
+      } else if (!processedOptions.endpoint.startsWith('https') && !processedOptions.allowInsecureBeacon) {
         throw new Error('Not using https is unsafe, if you want to force it use allowInsecureBeacon option.');
       }
       if (!processedOptions.rumAccessToken) {
@@ -464,7 +404,7 @@ export const SplunkRum: SplunkOtelWebType = {
     });
     provider.addSpanProcessor(this.attributesProcessor);
 
-    if (processedOptions.beaconEndpoint) {
+    if (processedOptions.endpoint) {
       const exporter = buildExporter(processedOptions);
       const spanProcessor = processedOptions.spanProcessor.factory(exporter, {
         scheduledDelayMillis: processedOptions.bufferTimeout,
