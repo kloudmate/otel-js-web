@@ -19,6 +19,7 @@ export default [
       format: 'iife',
       name: 'SplunkRum',
       sourcemap: true,
+      inlineDynamicImports: true,
     },
     plugins: [
       json(),
@@ -41,6 +42,7 @@ export default [
       format: 'iife',
       name: 'SplunkRum',
       sourcemap: true,
+      inlineDynamicImports: true,
     },
     plugins: [
       json(),
@@ -75,6 +77,7 @@ export default [
       format: 'iife',
       name: 'OtelApiGlobals',
       sourcemap: true,
+      inlineDynamicImports: true,
     },
     plugins: [
       json(),

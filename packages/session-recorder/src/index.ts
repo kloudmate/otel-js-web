@@ -22,7 +22,7 @@ import { VERSION } from './version';
 import { getGlobal } from './utils';
 
 import type { Resource } from '@opentelemetry/resources';
-import type { SplunkOtelWebType } from '@splunk/otel-web';
+import type { SplunkOtelWebType } from '@kloudmate/otel-web';
 
 interface BasicTracerProvider extends TracerProvider {
   readonly resource: Resource;
