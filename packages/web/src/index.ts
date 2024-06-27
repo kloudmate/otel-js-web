@@ -402,9 +402,7 @@ export const SplunkRum: SplunkOtelWebType = {
     }).then(resp => {
       provider.resource.attributes['country'] = resp.headers.get("Cloudfront-Viewer-Country-Name") || undefined
       provider.resource.attributes['city'] = resp.headers.get("CloudFront-Viewer-City") || undefined
-      const clientAddress = resp.headers.get("CloudFront-Viewer-Address")?.split(':')
-      provider.resource.attributes['client.ip'] = clientAddress?.[0]
-      provider.resource.attributes['client.port'] = clientAddress?.[1]
+      provider.resource.attributes['viewer.address'] = resp.headers.get("CloudFront-Viewer-Address") || undefined
     })
 
     const instrumentations = INSTRUMENTATIONS.map(({ Instrument, confKey, disable }) => {
