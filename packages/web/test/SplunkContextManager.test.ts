@@ -25,7 +25,7 @@ describe('async context propagation', () => {
   beforeEach(() => {
     SplunkOtelWeb.init({
       applicationName: 'my-app',
-      beaconEndpoint: 'https://localhost:9411/api/traces',
+      endpoint: 'https://localhost:4318',
       rumAccessToken: 'xxx',
       context: {
         async: true,

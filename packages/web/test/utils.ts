@@ -55,7 +55,7 @@ export function buildInMemorySplunkExporter(): {
 
 export function initWithDefaultConfig(capturer: SpanCapturer, additionalOptions = {}): void {
   SplunkRum._internalInit({
-    beaconEndpoint: 'http://127.0.0.1:8888/v1/trace',
+    endpoint: 'http://127.0.0.1:8888/v1/trace',
     allowInsecureBeacon: true,
     applicationName: 'my-app',
     deploymentEnvironment: 'my-env',
@@ -76,7 +76,7 @@ export function initWithSyncPipeline(additionalOptions = {}): {
   const processor = new SimpleSpanProcessor(exporter);
 
   SplunkRum._internalInit({
-    beaconEndpoint: 'http://127.0.0.1:8888/v1/trace',
+    endpoint: 'http://127.0.0.1:8888/v1/trace',
     allowInsecureBeacon: true,
     applicationName: 'my-app',
     deploymentEnvironment: 'my-env',

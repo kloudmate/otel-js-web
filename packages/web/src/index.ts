@@ -24,7 +24,7 @@ import {
   SpanExporter,
   SpanProcessor,
   BufferConfig,
-  AlwaysOffSampler, AlwaysOnSampler, ParentBasedSampler, 
+  AlwaysOffSampler, AlwaysOnSampler, ParentBasedSampler,
 } from '@opentelemetry/sdk-trace-base';
 import { WebTracerConfig } from '@opentelemetry/sdk-trace-web';
 import { Attributes, diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
@@ -74,6 +74,7 @@ export { SplunkExporterConfig } from './exporters/common';
 export { SplunkZipkinExporter } from './exporters/zipkin';
 export * from './SplunkWebTracerProvider';
 export * from './SessionBasedSampler';
+import { record } from 'rrweb'
 
 interface SplunkOtelWebOptionsInstrumentations {
   document?:     boolean | InstrumentationConfig;
@@ -96,33 +97,28 @@ export interface SplunkOtelWebExporterOptions {
    * One potential use case of this method is to remove PII from the attributes.
    */
   onAttributesSerializing?: (attributes: Attributes, span: ReadableSpan) => Attributes;
-
-  /**
-   * Switch from zipkin to otlp for exporting
-   */
-  otlp?: boolean;
 }
 
+type RRWebOptions = Parameters<typeof record>[0];
+
+export interface SessionRecorderConfig {
+  /** Set to true to enable session recording */
+  enabled?: boolean
+
+  /**
+   * Config options passed to rrweb's record()
+   */
+  options?: RRWebOptions
+}
 export interface SplunkOtelWebConfig {
   /** Allows http beacon urls */
   allowInsecureBeacon?: boolean;
 
-  /** Application name
-   * @deprecated Renamed to `applicationName`
-   */
-  app?: string;
-
   /** Application name */
   applicationName?: string;
 
-  /**
-   * Destination for the captured data
-   * @deprecated Renamed to `beaconEndpoint`, or use realm
-   */
-  beaconUrl?: string;
-
   /** Destination for the captured data */
-  beaconEndpoint?: string;
+  endpoint?: string;
 
   /** Options for context manager */
   context?: ContextManagerConfig;
@@ -137,12 +133,6 @@ export interface SplunkOtelWebConfig {
    * Sets a value for the `environment` attribute (persists through calls to `setGlobalAttributes()`)
    * */
   deploymentEnvironment?: string;
-
-  /**
-   * Sets a value for the `environment` attribute (persists through calls to `setGlobalAttributes()`)
-   * @deprecated Renamed to `deploymentEnvironment`
-   */
-  environment?: string;
 
   /**
    * Sets a value for the 'app.version' attribute
@@ -165,18 +155,6 @@ export interface SplunkOtelWebConfig {
   instrumentations?: SplunkOtelWebOptionsInstrumentations;
 
   /**
-   * The name of your organization’s realm. Automatically configures beaconUrl with correct URL
-   */
-  realm?: string;
-
-  /**
-   * Publicly-visible `rumAuth` value.  Please do not paste any other access token or auth value into here, as this
-   * will be visible to every user of your app
-   * @deprecated Renamed to rumAccessToken
-   */
-  rumAuth?: string;
-
-  /**
    * Publicly-visible rum access token value. Please do not paste any other access token or auth value into here, as this
    * will be visible to every user of your app
    */
@@ -186,6 +164,11 @@ export interface SplunkOtelWebConfig {
    * Config options passed to web tracer
    */
   tracer?: WebTracerConfig;
+
+  /**
+   * Session recorder config
+   */
+  sessionRecorder?: SessionRecorderConfig
 }
 
 interface SplunkOtelWebConfigInternal extends SplunkOtelWebConfig {
@@ -205,7 +188,7 @@ interface SplunkOtelWebConfigInternal extends SplunkOtelWebConfig {
 
 const OPTIONS_DEFAULTS: SplunkOtelWebConfigInternal = {
   applicationName: 'unknown-browser-app',
-  beaconEndpoint: undefined,
+  endpoint: undefined,
   bufferTimeout: 4000, //millis, tradeoff between batching and loss of spans by not sending before page close
   bufferSize: 50, // spans, tradeoff between batching and hitting sendBeacon invididual limits
   instrumentations: {},
@@ -221,25 +204,10 @@ const OPTIONS_DEFAULTS: SplunkOtelWebConfigInternal = {
     factory: (exporter, config) => new BatchSpanProcessor(exporter, config),
   },
   rumAccessToken: undefined,
-};
-
-function migrateConfigOption(config: SplunkOtelWebConfig, from: keyof SplunkOtelWebConfig, to: keyof SplunkOtelWebConfig) {
-  if (from in config && !(to in config && config[to] !== OPTIONS_DEFAULTS[to])) {
-    // @ts-expect-error There's no way to type this right
-    config[to] = config[from];
+  sessionRecorder: {
+    enabled: false
   }
-}
-
-/**
- * Update configuration based on configuration option renames
- */
-function migrateConfig(config: SplunkOtelWebConfig) {
-  migrateConfigOption(config, 'app', 'applicationName');
-  migrateConfigOption(config, 'beaconUrl', 'beaconEndpoint');
-  migrateConfigOption(config, 'environment', 'deploymentEnvironment');
-  migrateConfigOption(config, 'rumAuth', 'rumAccessToken');
-  return config;
-}
+};
 
 const INSTRUMENTATIONS = [
   { Instrument: SplunkDocumentLoadInstrumentation, confKey: 'document', disable: false },
@@ -262,20 +230,15 @@ export const INSTRUMENTATIONS_ALL_DISABLED: SplunkOtelWebOptionsInstrumentations
     { 'webvitals': false },
   );
 
-function getBeaconEndpointForRealm(config: SplunkOtelWebConfigInternal) {
-  if (config.exporter?.otlp) {
-    return `https://rum-ingest.${config.realm}.signalfx.com/v1/rumotlp`;
-  }
-
-  return `https://rum-ingest.${config.realm}.signalfx.com/v1/rum`;
-}
 
 function buildExporter(options: SplunkOtelWebConfigInternal) {
-  const url = options.beaconEndpoint + (options.rumAccessToken ? '?auth='+options.rumAccessToken : '');
+  const url = `${options.endpoint}/v1/traces`;
+  const authHeaderKey: string = 'Authorization'
   return options.exporter.factory({
     url,
-    otlp: options.exporter.otlp,
+    otlp: true,
     onAttributesSerializing: options.exporter.onAttributesSerializing,
+    headers: { [authHeaderKey]: options.rumAccessToken } as Record<string, string>
   });
 }
 
@@ -377,7 +340,7 @@ export const SplunkRum: SplunkOtelWebType = {
     const processedOptions: SplunkOtelWebConfigInternal = Object.assign(
       {},
       OPTIONS_DEFAULTS,
-      migrateConfig(options),
+      options,
       {
         exporter: Object.assign({}, OPTIONS_DEFAULTS.exporter, options.exporter),
       },
@@ -388,18 +351,11 @@ export const SplunkRum: SplunkOtelWebType = {
       return;
     }
 
-    if (processedOptions.realm) {
-      if (!processedOptions.beaconEndpoint) {
-        processedOptions.beaconEndpoint = getBeaconEndpointForRealm(processedOptions);
-      } else {
-        diag.warn('SplunkRum: Realm value ignored (beaconEndpoint has been specified)');
-      }
-    }
 
     if (!processedOptions.debug) {
-      if (!processedOptions.beaconEndpoint) {
-        throw new Error('SplunkRum.init( {beaconEndpoint: \'https://something\'} ) is required.');
-      } else if(!processedOptions.beaconEndpoint.startsWith('https') && !processedOptions.allowInsecureBeacon) {
+      if (!processedOptions.endpoint) {
+        throw new Error('SplunkRum.init( {endpoint: \'https://something\'} ) is required.');
+      } else if (!processedOptions.endpoint.startsWith('https') && !processedOptions.allowInsecureBeacon) {
         throw new Error('Not using https is unsafe, if you want to force it use allowInsecureBeacon option.');
       }
       if (!processedOptions.rumAccessToken) {
@@ -421,12 +377,13 @@ export const SplunkRum: SplunkOtelWebType = {
 
     const resourceAttrs: ResourceAttributes = {
       ...SDK_INFO,
-      [SemanticResourceAttributes.TELEMETRY_SDK_NAME]: '@splunk/otel-web',
+      [SemanticResourceAttributes.TELEMETRY_SDK_NAME]: '@kloudmate/otel-web',
       [SemanticResourceAttributes.TELEMETRY_SDK_VERSION]: VERSION,
       // Splunk specific attributes
       'splunk.rumVersion': VERSION,
       'splunk.scriptInstance': instanceId,
       'app': applicationName,
+      'userAgent': navigator.userAgent
     };
 
     const syntheticsRunId = getSyntheticsRunId();
@@ -439,6 +396,14 @@ export const SplunkRum: SplunkOtelWebType = {
       ...processedOptions.tracer,
       resource: this.resource,
     });
+
+    fetch(`https://cdn.kloudmate.com/${VERSION}/splunk-otel-web.js`, {
+      method: 'HEAD'
+    }).then(resp => {
+      provider.resource.attributes['country'] = resp.headers.get("Cloudfront-Viewer-Country-Name") || undefined
+      provider.resource.attributes['city'] = resp.headers.get("CloudFront-Viewer-City") || undefined
+      provider.resource.attributes['viewer.address'] = resp.headers.get("CloudFront-Viewer-Address") || undefined
+    })
 
     const instrumentations = INSTRUMENTATIONS.map(({ Instrument, confKey, disable }) => {
       const pluginConf = getPluginConfig(processedOptions.instrumentations[confKey], pluginDefaults, disable);
@@ -464,7 +429,7 @@ export const SplunkRum: SplunkOtelWebType = {
     });
     provider.addSpanProcessor(this.attributesProcessor);
 
-    if (processedOptions.beaconEndpoint) {
+    if (processedOptions.endpoint) {
       const exporter = buildExporter(processedOptions);
       const spanProcessor = processedOptions.spanProcessor.factory(exporter, {
         scheduledDelayMillis: processedOptions.bufferTimeout,
@@ -509,6 +474,17 @@ export const SplunkRum: SplunkOtelWebType = {
     inited = true;
     registerGlobal('splunk.rum', this);
     diag.info('SplunkRum.init() complete');
+
+    if (options.sessionRecorder?.enabled) {
+      import('@kloudmate/otel-web-session-recorder').then(module => {
+        module.default.init({
+          endpoint: options.endpoint,
+          rumAccessToken: options.rumAccessToken,
+          debug: options.debug,
+          ...options.sessionRecorder?.options
+        })
+      })
+    }
   },
 
   deinit() {
