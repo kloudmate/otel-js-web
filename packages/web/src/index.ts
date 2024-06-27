@@ -74,6 +74,7 @@ export { SplunkExporterConfig } from './exporters/common';
 export { SplunkZipkinExporter } from './exporters/zipkin';
 export * from './SplunkWebTracerProvider';
 export * from './SessionBasedSampler';
+import { record } from 'rrweb'
 
 interface SplunkOtelWebOptionsInstrumentations {
   document?:     boolean | InstrumentationConfig;
@@ -98,6 +99,17 @@ export interface SplunkOtelWebExporterOptions {
   onAttributesSerializing?: (attributes: Attributes, span: ReadableSpan) => Attributes;
 }
 
+type RRWebOptions = Parameters<typeof record>[0];
+
+export interface SessionRecorderConfig {
+  /** Set to true to enable session recording */
+  enabled?: boolean
+
+  /**
+   * Config options passed to rrweb's record()
+   */
+  options?: RRWebOptions
+}
 export interface SplunkOtelWebConfig {
   /** Allows http beacon urls */
   allowInsecureBeacon?: boolean;
@@ -152,6 +164,11 @@ export interface SplunkOtelWebConfig {
    * Config options passed to web tracer
    */
   tracer?: WebTracerConfig;
+
+  /**
+   * Session recorder config
+   */
+  sessionRecorder?: SessionRecorderConfig
 }
 
 interface SplunkOtelWebConfigInternal extends SplunkOtelWebConfig {
@@ -187,6 +204,9 @@ const OPTIONS_DEFAULTS: SplunkOtelWebConfigInternal = {
     factory: (exporter, config) => new BatchSpanProcessor(exporter, config),
   },
   rumAccessToken: undefined,
+  sessionRecorder: {
+    enabled: false
+  }
 };
 
 const INSTRUMENTATIONS = [
@@ -320,6 +340,7 @@ export const SplunkRum: SplunkOtelWebType = {
     const processedOptions: SplunkOtelWebConfigInternal = Object.assign(
       {},
       OPTIONS_DEFAULTS,
+      options,
       {
         exporter: Object.assign({}, OPTIONS_DEFAULTS.exporter, options.exporter),
       },
@@ -452,6 +473,17 @@ export const SplunkRum: SplunkOtelWebType = {
     inited = true;
     registerGlobal('splunk.rum', this);
     diag.info('SplunkRum.init() complete');
+
+    if (options.sessionRecorder?.enabled) {
+      import('@kloudmate/otel-web-session-recorder').then(module => {
+        module.default.init({
+          endpoint: options.endpoint,
+          rumAccessToken: options.rumAccessToken,
+          debug: options.debug,
+          ...options.sessionRecorder?.options
+        })
+      })
+    }
   },
 
   deinit() {
