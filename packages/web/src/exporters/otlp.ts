@@ -24,6 +24,7 @@ export class SplunkOTLPTraceExporter extends OTLPTraceExporter {
   protected readonly _xhrSender: SplunkExporterConfig['xhrSender'] = NATIVE_XHR_SENDER;
   // sendbeancon cannot send custom headers which is required for auth, use fetch with keepalive instead
   protected readonly _beaconSender: SplunkExporterConfig['beaconSender'] = typeof navigator !== 'undefined' && navigator.sendBeacon ? NATIVE_FETCH_SENDER : undefined;
+  protected readonly _headers: SplunkExporterConfig['headers']
 
   constructor(options: SplunkExporterConfig) {
     super(options);
@@ -51,7 +52,7 @@ export class SplunkOTLPTraceExporter extends OTLPTraceExporter {
     if (document.hidden && this._beaconSender && body.length <= 64000) {
       this._beaconSender(this.url, body, {
         'Content-Type': 'application/json',
-        ...this.headers,
+        ...this._headers,
       });
     } else {
       this._xhrSender!(this.url, body, {
@@ -59,7 +60,7 @@ export class SplunkOTLPTraceExporter extends OTLPTraceExporter {
         // need to test with actual ingest
         Accept: 'application/json',
         'Content-Type': 'application/json',
-        ...this.headers
+        ...this._headers
       });
     }
 
