@@ -35,7 +35,8 @@
     "postversion": "node ./scripts/version-update.mjs",
     "version:bump": "npm version --workspaces --include-workspace-root",
     "version:check": "node ./scripts/version-check.mjs",
-    "tag:check": "node ./scripts/tag-check.js"
+    "tag:check": "node ./scripts/tag-check.js",
+    "deploy": "node ./scripts/release-cdn.mjs"
   },
   "devDependencies": {
     "@aws-sdk/client-cloudfront": "^3.171.0",
