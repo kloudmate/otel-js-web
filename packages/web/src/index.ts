@@ -397,7 +397,7 @@ export const SplunkRum: SplunkOtelWebType = {
       resource: this.resource,
     });
 
-    fetch(`https://cdn.kloudmate.com/${VERSION}/splunk-otel-web.js`, {
+    fetch(`https://cdn.kloudmate.com/rum/v${VERSION}/otel-web.js`, {
       method: 'HEAD'
     }).then(resp => {
       provider.resource.attributes['country'] = resp.headers.get("Cloudfront-Viewer-Country-Name") || undefined

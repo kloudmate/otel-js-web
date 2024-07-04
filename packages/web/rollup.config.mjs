@@ -15,9 +15,9 @@ export default [
   {
     input: 'src/indexBrowser.ts',
     output: {
-      file: 'dist/artifacts/splunk-otel-web.js',
+      file: 'dist/artifacts/otel-web.js',
       format: 'iife',
-      name: 'SplunkRum',
+      name: 'KloudMateRum',
       sourcemap: true,
       inlineDynamicImports: true,
     },
@@ -38,9 +38,9 @@ export default [
   {
     input: 'src/indexBrowser.ts',
     output: {
-      file: 'dist/artifacts/splunk-otel-web-legacy.js',
+      file: 'dist/artifacts/otel-web-legacy.js',
       format: 'iife',
-      name: 'SplunkRum',
+      name: 'KloudMateRum',
       sourcemap: true,
       inlineDynamicImports: true,
     },
