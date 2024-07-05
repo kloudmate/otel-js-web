@@ -19,7 +19,7 @@ const { version } = JSON.parse(fs.readFileSync(`${root}/package.json`))
 const files = fs.readdirSync(`${root}/dist/artifacts`)
 for (const file of files) {
   const data = fs.readFileSync(`${root}/dist/artifacts/${file}`)
-  const fileName = `rum/v${version}/${file}`
+  const fileName = `rum/js/v${version}/${file}`
   const ext = path.extname(file)
 
   console.log(`Uploading ${fileName}...`)
