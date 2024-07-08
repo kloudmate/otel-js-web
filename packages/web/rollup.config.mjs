@@ -31,7 +31,16 @@ export default [
       }),
       typescript({ tsconfig: './tsconfig.base.json' }),
       babelPlugin,
-      terser({ output: { comments: false } }),
+      terser({
+        output: {
+          comments: (_, comment) => {
+            if (comment.type === 'comment2') {
+              return /Copyright/i.test(comment.value);
+            }
+            return false;
+          }
+        }
+      }),
     ],
     context: 'window',
   },
@@ -64,7 +73,12 @@ export default [
       terser({
         ecma: 5,
         output: {
-          comments: false
+          comments: (_, comment) => {
+            if (comment.type === 'comment2') {
+              return /Copyright/i.test(comment.value);
+            }
+            return false;
+          }
         }
       }),
     ],
@@ -92,7 +106,12 @@ export default [
       terser({
         ecma: 5,
         output: {
-          comments: false
+          comments: (_, comment) => {
+            if (comment.type === 'comment2') {
+              return /Copyright/i.test(comment.value);
+            }
+            return false;
+          }
         }
       }),
     ],

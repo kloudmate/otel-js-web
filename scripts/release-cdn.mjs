@@ -16,10 +16,10 @@ const cfClient = new CloudFrontClient({ region: 'us-east-1' })
 const root = 'packages/web'
 const { version } = JSON.parse(fs.readFileSync(`${root}/package.json`))
 
-const files = fs.readdirSync(`${root}/dist`)
+const files = fs.readdirSync(`${root}/dist/artifacts`)
 for (const file of files) {
-  const data = fs.readFileSync(`${root}/dist/${file}`)
-  const fileName = `rum/v${version}/${file}`
+  const data = fs.readFileSync(`${root}/dist/artifacts/${file}`)
+  const fileName = `rum/js/v${version}/${file}`
   const ext = path.extname(file)
 
   console.log(`Uploading ${fileName}...`)
@@ -47,4 +47,5 @@ cfClient.send(
     },
   })
 )
+
 
