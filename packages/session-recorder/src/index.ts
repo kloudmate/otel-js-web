@@ -133,8 +133,7 @@ const SplunkRumRecorder = {
     sessionStartTime = Date.now();
 
     inited = record({
-      maskAllInputs: true,
-      maskTextSelector: '*',
+      maskAllInputs: undefined,
       ...rrwebConf,
       emit(event) {
         if (paused) {
