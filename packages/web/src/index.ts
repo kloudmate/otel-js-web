@@ -400,7 +400,7 @@ export const SplunkRum: SplunkOtelWebType = {
     fetch(`https://cdn.kloudmate.com/rum/js/v${VERSION}/otel-web.js`, {
       method: 'HEAD'
     }).then(resp => {
-      provider.resource.attributes['country'] = resp.headers.get("Cloudfront-Viewer-Country-Name") || undefined
+      provider.resource.attributes['country'] = resp.headers.get("Cloudfront-Viewer-Country") || undefined
       provider.resource.attributes['city'] = resp.headers.get("CloudFront-Viewer-City") || undefined
       provider.resource.attributes['viewer.address'] = resp.headers.get("CloudFront-Viewer-Address") || undefined
     })
