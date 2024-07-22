@@ -380,8 +380,8 @@ export const SplunkRum: SplunkOtelWebType = {
       [SemanticResourceAttributes.TELEMETRY_SDK_NAME]: '@kloudmate/otel-web',
       [SemanticResourceAttributes.TELEMETRY_SDK_VERSION]: VERSION,
       // Splunk specific attributes
-      'splunk.rumVersion': VERSION,
-      'splunk.scriptInstance': instanceId,
+      'kloudmate.rumVersion': VERSION,
+      'kloudmate.scriptInstance': instanceId,
       'app': applicationName,
       'userAgent': navigator.userAgent
     };
