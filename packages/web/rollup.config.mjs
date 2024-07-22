@@ -15,10 +15,11 @@ export default [
   {
     input: 'src/indexBrowser.ts',
     output: {
-      file: 'dist/artifacts/splunk-otel-web.js',
+      file: 'dist/artifacts/otel-web.js',
       format: 'iife',
-      name: 'SplunkRum',
+      name: 'KloudMateRum',
       sourcemap: true,
+      inlineDynamicImports: true,
     },
     plugins: [
       json(),
@@ -30,17 +31,27 @@ export default [
       }),
       typescript({ tsconfig: './tsconfig.base.json' }),
       babelPlugin,
-      terser({ output: { comments: false } }),
+      terser({
+        output: {
+          comments: (_, comment) => {
+            if (comment.type === 'comment2') {
+              return /Copyright/i.test(comment.value);
+            }
+            return false;
+          }
+        }
+      }),
     ],
     context: 'window',
   },
   {
     input: 'src/indexBrowser.ts',
     output: {
-      file: 'dist/artifacts/splunk-otel-web-legacy.js',
+      file: 'dist/artifacts/otel-web-legacy.js',
       format: 'iife',
-      name: 'SplunkRum',
+      name: 'KloudMateRum',
       sourcemap: true,
+      inlineDynamicImports: true,
     },
     plugins: [
       json(),
@@ -62,7 +73,12 @@ export default [
       terser({
         ecma: 5,
         output: {
-          comments: false
+          comments: (_, comment) => {
+            if (comment.type === 'comment2') {
+              return /Copyright/i.test(comment.value);
+            }
+            return false;
+          }
         }
       }),
     ],
@@ -75,6 +91,7 @@ export default [
       format: 'iife',
       name: 'OtelApiGlobals',
       sourcemap: true,
+      inlineDynamicImports: true,
     },
     plugins: [
       json(),
@@ -89,7 +106,12 @@ export default [
       terser({
         ecma: 5,
         output: {
-          comments: false
+          comments: (_, comment) => {
+            if (comment.type === 'comment2') {
+              return /Copyright/i.test(comment.value);
+            }
+            return false;
+          }
         }
       }),
     ],
