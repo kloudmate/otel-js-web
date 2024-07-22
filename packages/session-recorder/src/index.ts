@@ -22,7 +22,6 @@ import { VERSION } from './version';
 import { getGlobal } from './utils';
 
 import type { Resource } from '@opentelemetry/resources';
-import type { SplunkOtelWebType } from '@kloudmate/otel-web';
 
 interface BasicTracerProvider extends TracerProvider {
   readonly resource: Resource;
@@ -80,7 +79,7 @@ const SplunkRumRecorder = {
       return;
     }
 
-    const SplunkRum = getGlobal<SplunkOtelWebType>('splunk.rum');
+    const SplunkRum = getGlobal<any>('splunk.rum');
 
     let tracerProvider: BasicTracerProvider | ProxyTracerProvider = trace.getTracerProvider() as BasicTracerProvider;
     if (tracerProvider && 'getDelegate' in tracerProvider) {
