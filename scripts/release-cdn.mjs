@@ -7,6 +7,7 @@ import {
   CreateInvalidationCommand,
 } from '@aws-sdk/client-cloudfront'
 import fs from 'fs'
+import path from 'path';
 
 dotenv.config()
 
