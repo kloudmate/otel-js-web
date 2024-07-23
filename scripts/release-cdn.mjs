@@ -11,7 +11,7 @@ import path from 'path';
 
 dotenv.config()
 
-const s3Client = new S3Client({ region: 'us-east-1' })
+const s3Client = new S3Client({ region: 'us-west-2' })
 const cfClient = new CloudFrontClient({ region: 'us-east-1' })
 
 const root = 'packages/web'
