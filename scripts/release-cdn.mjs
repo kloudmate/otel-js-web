@@ -29,7 +29,7 @@ for (const file of files) {
       Body: data,
       Bucket: process.env.BUCKET_NAME,
       Key: fileName,
-      ContentType: ext === 'js' && 'text/javascript',
+      ContentType: ext === 'js' ? 'application/javascript' : 'application/json',
     })
   )
 }
