@@ -1,134 +1,258 @@
-/*
-Copyright 2022 Splunk Inc.
+/**
+ *
+ * Copyright 2020-2025 Splunk Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+import { gzipSync, strToU8 } from 'fflate'
+import { nanoid } from 'nanoid'
+import type { JsonArray, JsonObject, JsonValue } from 'type-fest'
 
-http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
-import { gzipSync, strToU8 } from 'fflate';
-import type { JsonArray, JsonObject, JsonValue } from 'type-fest';
-
-import { IAnyValue, Log } from './types';
-import { VERSION } from './version.js';
+import { IAnyValue, Log } from './types'
+import { VERSION } from './version'
+import { compressAsync } from './session-replay/utils'
+import { apiFetch, ApiParams } from './api/api-fetch'
+import { addLogToQueue, removeQueuedLog, QueuedLog, getQueuedLogs, removeQueuedLogs } from './export-log-queue'
+import { context } from '@opentelemetry/api'
+import { suppressTracing } from '@opentelemetry/core'
 
 interface OTLPLogExporterConfig {
-  headers?: Record<string, string>;
-  beaconUrl: string;
-  getResourceAttributes: () => JsonObject;
-  debug?: boolean;
+	beaconUrl: string
+	debug?: boolean
+	getResourceAttributes: () => JsonObject
+	headers?: Record<string, string>
+	sessionId: string
+	usePersistentExportQueue: boolean
 }
 
+const KEEPALIVE_MAX_LENGTH = 65536
+
 const defaultHeaders = {
-  'Content-Type': 'application/json',
-  'Content-Encoding': 'gzip'
-};
+	'Content-Type': 'application/json',
+	'Content-Encoding': 'gzip',
+}
 
 function isArray(value: JsonValue): value is JsonArray {
-  return Array.isArray(value);
+	return Array.isArray(value)
 }
 
 function isObject(value: JsonValue): value is JsonObject {
-  return !!value && typeof value === 'object' && !isArray(value);
+	return !!value && typeof value === 'object' && !isArray(value)
 }
 
 function convertToAnyValue(value: JsonValue): IAnyValue {
-  if (isObject(value)) {
-    return {
-      kvlistValue: {
-        values: Object.entries(value).map(([key, value]) => ({
-          key,
-          value: convertToAnyValue(value),
-        }))
-      }
-    };
-  }
+	if (isObject(value)) {
+		return {
+			kvlistValue: {
+				values: Object.entries(value).map(([key, v]) => ({
+					key,
+					value: convertToAnyValue(v),
+				})),
+			},
+		}
+	}
 
-  if (isArray(value)) {
-    return {
-      arrayValue: {
-        values: value.map(value => convertToAnyValue(value)),
-      }
-    };
-  }
+	if (isArray(value)) {
+		return {
+			arrayValue: {
+				values: value.map((v) => convertToAnyValue(v)),
+			},
+		}
+	}
 
-  if (typeof value === 'string') {
-    return {
-      stringValue: value
-    };
-  }
+	if (typeof value === 'string') {
+		return {
+			stringValue: value,
+		}
+	}
 
-  if (typeof value === 'number') {
-    return {
-      doubleValue: value
-    };
-  }
+	if (typeof value === 'number') {
+		return {
+			doubleValue: value,
+		}
+	}
 
-  if (typeof value === 'boolean') {
-    return {
-      boolValue: value
-    };
-  }
+	if (typeof value === 'boolean') {
+		return {
+			boolValue: value,
+		}
+	}
 
-  // never
-  return {};
+	// never
+	return {}
 }
 
 export default class OTLPLogExporter {
-  config: OTLPLogExporterConfig;
+	config: OTLPLogExporterConfig
 
-  constructor(config: OTLPLogExporterConfig) {
-    this.config = config;
-  }
+	constructor(config: OTLPLogExporterConfig) {
+		this.config = config
+		this.exportQueuedLogs()
+	}
 
-  constructLogData(logs: Log[]): JsonObject {
-    return {
-      resourceLogs: [{
-        resource: {
-          attributes: convertToAnyValue(this.config.getResourceAttributes() || {}).kvlistValue!.values as JsonArray,
-        },
-        scopeLogs: [{
-          scope: { name: 'splunk.rr-web', version: VERSION },
-          logRecords: logs.map(log => ({
-            body: convertToAnyValue(log.body!) as JsonObject,
-            timeUnixNano: log.timeUnixNano,
-            attributes: convertToAnyValue(log.attributes || {}).kvlistValue!.values as JsonArray,
-          }))
-        }]
-      }],
-    };
-  }
+	constructLogData(logs: Log[]): JsonObject {
+		return {
+			resourceLogs: [
+				{
+					resource: {
+						attributes: convertToAnyValue(this.config.getResourceAttributes() || {}).kvlistValue
+							?.values as JsonArray,
+					},
+					scopeLogs: [
+						{
+							scope: { name: 'splunk.rr-web', version: VERSION },
+							logRecords: logs.map((log) => ({
+								// @ts-expect-error FIXME: `body` is not defined
+								body: convertToAnyValue(log.body) as JsonObject,
+								timeUnixNano: log.timeUnixNano,
+								attributes: convertToAnyValue(log.attributes || {}).kvlistValue?.values as JsonArray,
+							})),
+						},
+					],
+				},
+			],
+		}
+	}
 
-  export(logs: Log[]): void {
-    if (logs.length === 0) {
-      return;
-    }
+	export(logs: Log[]): void {
+		if (logs.length === 0) {
+			return
+		}
 
-    const headers = this.config.headers
-      ? Object.assign({}, defaultHeaders, this.config.headers)
-      : defaultHeaders;
+		const headers = this.config.headers ? Object.assign({}, defaultHeaders, this.config.headers) : defaultHeaders
 
-    const logsData = this.constructLogData(logs);
-    if (this.config.debug) {
-      console.log('otlp request', logsData);
-    }
+		const logsData = this.constructLogData(logs)
+		if (this.config.debug) {
+			console.log('otlp request', logsData)
+		}
 
-    const compressed = gzipSync(strToU8(JSON.stringify(logsData)));
+		const endpoint = this.config.beaconUrl
+		const uint8ArrayData = strToU8(JSON.stringify(logsData))
 
-    fetch(this.config.beaconUrl, {
-      method: 'POST',
-      body: compressed,
-      headers: headers,
-    }).catch(() => {
-      // TODO remove this once we have ingest with correct cors headers
-    });
-  }
+		const requestId = nanoid()
+		const queuedLog: QueuedLog | null = this.config.usePersistentExportQueue
+			? {
+					data: uint8ArrayData,
+					timestamp: Date.now(),
+					url: endpoint,
+					sessionId: this.config.sessionId,
+					headers,
+					requestId,
+				}
+			: null
+
+		if (queuedLog) {
+			console.log('Adding log to queue', { ...queuedLog, data: '[truncated]' })
+			addLogToQueue(queuedLog)
+		}
+
+		const onFetchSuccess = () => {
+			if (!queuedLog) {
+				return
+			}
+
+			console.log('Removing queued log', { ...queuedLog, data: '[truncated]' })
+			removeQueuedLog(queuedLog)
+		}
+
+		if (document.visibilityState === 'hidden') {
+			const compressedData = gzipSync(uint8ArrayData)
+			console.debug('🗜️ dbg: SYNC compress', { endpoint, headers, compressedData })
+
+			// Use fetch with keepalive option instead of beacon.
+			// Fetch with keepalive option has limit of 64kB.
+			const shouldUseKeepAliveOption = compressedData.byteLength < KEEPALIVE_MAX_LENGTH
+			void sendByFetch(
+				endpoint,
+				{ headers, body: compressedData, keepalive: shouldUseKeepAliveOption },
+				onFetchSuccess,
+			)
+		} else {
+			compressAsync(uint8ArrayData)
+				.then((compressedData) => {
+					console.debug('🗜️ dbg: ASYNC compress', { endpoint, headers, compressedData })
+					void sendByFetch(endpoint, { headers, body: compressedData }, onFetchSuccess)
+				})
+				.catch((error) => {
+					console.error('Could not compress data', error)
+				})
+		}
+	}
+
+	exportQueuedLogs(): void {
+		let logs: QueuedLog[] = []
+		try {
+			logs = getQueuedLogs() ?? []
+		} finally {
+			removeQueuedLogs()
+		}
+
+		for (const log of logs) {
+			console.log('Found queued log', { ...log, data: '[truncated]' })
+
+			// Only export logs that belong to the current session
+			if (log.sessionId !== this.config.sessionId) {
+				console.debug(
+					'exportQueuedLogs - session mismatch',
+					{ ...log, data: '[truncated]' },
+					{ sessionId: this.config.sessionId },
+				)
+				continue
+			}
+
+			compressAsync(log.data)
+				.then((compressedData) => {
+					void sendByFetch(log.url, { headers: log.headers, body: compressedData }, () => {
+						console.log('exportQueuedLogs - success', { ...log, data: '[truncated]' })
+					})
+				})
+				.catch((error) => {
+					console.error('Could not compress data', error)
+				})
+		}
+	}
 }
+
+const sendByFetchInternal = async (
+	endpoint: string,
+	fetchParams: Pick<ApiParams, 'headers' | 'keepalive' | 'body'>,
+	onSuccess: () => void,
+) => {
+	try {
+		await apiFetch(endpoint, {
+			method: 'POST',
+			abortPreviousRequest: false,
+			doNotConvert: true,
+			doNotRetryOnDocumentHidden: true,
+			retryCount: 100,
+			retryOnHttpErrorStatusCodes: true,
+			...fetchParams,
+		})
+
+		console.debug('📦 dbg: sendByFetch', { keepalive: fetchParams.keepalive })
+		onSuccess()
+	} catch (error) {
+		console.error('Could not sent data to BE - fetch', error)
+	}
+}
+
+const sendByFetch = (...args: Parameters<typeof sendByFetchInternal>) =>
+	new Promise((resolve, reject) => {
+		context.with(suppressTracing(context.active()), () => {
+			sendByFetchInternal(...args)
+				.then(resolve)
+				.catch(reject)
+		})
+	})
