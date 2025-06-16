@@ -25,6 +25,7 @@ import { SocketIoClientInstrumentationConfig } from '../SplunkSocketIoClientInst
 import { WebVitalsInstrumentationConfig } from '../webvitals'
 import { XMLHttpRequestInstrumentationConfig } from '@opentelemetry/instrumentation-xml-http-request'
 import { ReadableSpan, SpanProcessor } from '@opentelemetry/sdk-trace-base'
+import { record } from 'rrweb'
 
 export interface SplunkOtelWebOptionsInstrumentations {
 	connectivity?: boolean | InstrumentationConfig
@@ -68,6 +69,18 @@ export function isPersistenceType(value: string): value is PersistenceType {
 	return ['cookie', 'localStorage'].includes(value)
 }
 
+type RRWebOptions = Parameters<typeof record>[0];
+
+export interface SessionRecorderConfig {
+  /** Set to true to enable session recording */
+  enabled?: boolean
+
+  /**
+   * Config options passed to rrweb's record()
+   */
+  options?: RRWebOptions
+}
+
 export interface SplunkOtelWebConfig {
 	/**
 	 * If enabled, all spans are treated as activity and extend the duration of the session. Defaults to false.
@@ -92,6 +105,9 @@ export interface SplunkOtelWebConfig {
 
 	/** Destination for the captured data */
 	beaconEndpoint?: string
+
+	/** Destination for the captured data */
+  	endpoint?: string;
 
 	/**
 	 * Destination for the captured data
@@ -190,4 +206,6 @@ export interface SplunkOtelWebConfig {
 	 * Sets a value for the 'app.version' attribute
 	 */
 	version?: string
+
+	sessionRecorder?: SessionRecorderConfig
 }
