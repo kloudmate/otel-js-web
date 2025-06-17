@@ -128,9 +128,9 @@ const browserConfig = (env, argv) => {
 		entry: path.resolve(__dirname, './src/indexBrowser.ts'),
 		output: {
 			...baseConfig.output,
-			filename: 'splunk-otel-web.js',
+			filename: 'otel-web.js',
 			library: {
-				name: 'SplunkRum',
+				name: 'KloudMateRum',
 				type: 'window',
 				export: 'default',
 			},

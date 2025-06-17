@@ -579,7 +579,7 @@ export const SplunkRum: SplunkOtelWebType = {
 
   error(...args) {
     if (!inited) {
-      diag.debug('SplunkRum not inited');
+      diag.debug('KloudMateRum not inited');
       return;
     }
 
@@ -588,7 +588,7 @@ export const SplunkRum: SplunkOtelWebType = {
       return;
     }
 
-    _errorInstrumentation.report('SplunkRum.error', args);
+    _errorInstrumentation.report('KloudMate.error', args);
   },
 
   addEventListener(name, callback): void {

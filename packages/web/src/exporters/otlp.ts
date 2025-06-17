@@ -23,18 +23,22 @@ import {
 	NATIVE_XHR_SENDER,
 	NATIVE_BEACON_SENDER,
 	type SplunkExporterConfig,
+	NATIVE_FETCH_SENDER,
 } from './common'
 import { ReadableSpan } from '@opentelemetry/sdk-trace-base'
 
 export class SplunkOTLPTraceExporter extends OTLPTraceExporter {
-	protected readonly _beaconSender: SplunkExporterConfig['beaconSender'] = NATIVE_BEACON_SENDER
+	protected readonly _beaconSender: SplunkExporterConfig['beaconSender'] =  NATIVE_FETCH_SENDER
 
 	protected readonly _onAttributesSerializing: SplunkExporterConfig['onAttributesSerializing']
 
 	protected readonly _xhrSender: SplunkExporterConfig['xhrSender'] = NATIVE_XHR_SENDER
 
+	protected readonly _headers: SplunkExporterConfig["headers"]
+
 	constructor(options: SplunkExporterConfig) {
 		super(options)
+		this._headers = options.headers || {}
 		this._onAttributesSerializing = options.onAttributesSerializing || NOOP_ATTRIBUTES_TRANSFORMER
 	}
 
@@ -57,14 +61,14 @@ export class SplunkOTLPTraceExporter extends OTLPTraceExporter {
 
 		// Changed: Determine which exporter to use at the time of export
 		if (document.hidden && this._beaconSender && body.length <= 64000) {
-			this._beaconSender(this.url, body, { type: 'application/json' })
+			this._beaconSender(this.url, body, { type: 'application/json', ...this._headers })
 		} else if (this._xhrSender) {
 			this._xhrSender(this.url, body, {
 				// These headers may only be necessary for otel's collector,
 				// need to test with actual ingest
 				'Accept': 'application/json',
 				'Content-Type': 'application/json',
-				...this.headers,
+				...this._headers
 			})
 		}
 

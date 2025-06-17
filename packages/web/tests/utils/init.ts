@@ -37,7 +37,7 @@ export const initWithDefaultConfig = (capturer: SpanCapturer, additionalOptions 
 	})
 
 	if (!SplunkRum.inited) {
-		throw Error('SplunkRum not initialized')
+		throw Error('KloudMateRum not initialized')
 	}
 }
 

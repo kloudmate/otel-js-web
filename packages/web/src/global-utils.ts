@@ -21,7 +21,7 @@ import { VERSION } from './version'
 
 const GLOBAL_OPENTELEMETRY_API_KEY = Symbol.for('opentelemetry.js.api.1')
 
-const GLOBAL_SPLUNK_RUM_KEY = 'splunk.rum'
+const GLOBAL_SPLUNK_RUM_KEY = 'KloudMate.rum'
 
 const GLOBAL_SPLUNK_RUM_VERSION_KEY = `${GLOBAL_SPLUNK_RUM_KEY}.version`
 
@@ -40,7 +40,7 @@ const globalThisTyped = globalThis as typeof globalThis & {
  */
 export function registerGlobal(instance: unknown, allowOverride = false): boolean {
 	if (!globalThisTyped[GLOBAL_OPENTELEMETRY_API_KEY]) {
-		diag.error('SplunkRum: Tried to access global before otel setup')
+		diag.error('KloudMate: Tried to access global before otel setup')
 		return false
 	}
 
@@ -51,12 +51,12 @@ export function registerGlobal(instance: unknown, allowOverride = false): boolea
 	}
 
 	if (api[GLOBAL_SPLUNK_RUM_VERSION_KEY] !== VERSION) {
-		diag.error(`SplunkRum: Global: Multiple versions detected (${VERSION} already registered)`)
+		diag.error(`KloudMate: Global: Multiple versions detected (${VERSION} already registered)`)
 		return false
 	}
 
 	if (!allowOverride && api[GLOBAL_SPLUNK_RUM_KEY]) {
-		diag.error(`SplunkRum: Attempted duplicate registration of otel API ${GLOBAL_SPLUNK_RUM_KEY}`)
+		diag.error(`KloudMate: Attempted duplicate registration of otel API ${GLOBAL_SPLUNK_RUM_KEY}`)
 		return false
 	}
 
@@ -75,7 +75,7 @@ export function unregisterGlobal(): boolean {
 
 	if (!!api[GLOBAL_SPLUNK_RUM_VERSION_KEY] && api[GLOBAL_SPLUNK_RUM_VERSION_KEY] !== VERSION) {
 		diag.warn(
-			`SplunkRum version in OTel API ref (${api[GLOBAL_SPLUNK_RUM_VERSION_KEY]}) didn't match our version (${VERSION}).`,
+			`KloudMate version in OTel API ref (${api[GLOBAL_SPLUNK_RUM_VERSION_KEY]}) didn't match our version (${VERSION}).`,
 		)
 	}
 
