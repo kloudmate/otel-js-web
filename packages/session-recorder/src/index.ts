@@ -152,9 +152,11 @@ const SplunkRumRecorder = {
 		if (SplunkRum.provider) {
 			const sessionReplayAttribute = isSplunkRecorder ? 'splunk' : 'rrweb';
 			SplunkRum.provider.resource.attributes['splunk.sessionReplay'] = sessionReplayAttribute;
-			console.debug(
-				`KloumdateSessionRecorder: splunk.sessionReplay resource attribute set to '${sessionReplayAttribute}'.`,
-			);
+			if(debug) {
+				console.debug(
+					`KloumdateSessionRecorder: KloudMate.sessionReplay resource attribute set to '${sessionReplayAttribute}'.`,
+				);
+			}
 		}
 
 		tracer = trace.getTracer('splunk.rr-web', VERSION);
@@ -241,7 +243,9 @@ const SplunkRumRecorder = {
 				SplunkRum._internalOnExternalSpanCreated();
 			}
 
-			const time = emitContext.type === 'splunk' ? Math.floor(emitContext.startTime) : emitContext.startTime;
+			const startTime = emitContext.type === 'splunk' ? Math.floor(emitContext.startTime) : emitContext.startTime; 
+			const timestampNano = startTime * 1000 * 1000;
+
 			const eventI = eventCounter++;
 
 			const body = encoder.encode(JSON.stringify(emitContext.data));
@@ -250,7 +254,7 @@ const SplunkRumRecorder = {
 			for (let i = 0; i < totalC; i++) {
 				const start = i * MAX_CHUNK_SIZE;
 				const end = (i + 1) * MAX_CHUNK_SIZE;
-				const log = convert(decoder.decode(body.slice(start, end)), time, {
+				const log = convert(decoder.decode(body.slice(start, end)), timestampNano, {
 					'rr-web.offset': logCounter++,
 					'rr-web.event': eventI,
 					'rr-web.chunk': i + 1,
@@ -260,6 +264,7 @@ const SplunkRumRecorder = {
 				if (debug) {
 					console.log(log);
 				}
+				
 				processor.onEmit(log);
 			}
 		};

@@ -77,7 +77,7 @@ export const apiFetch = async <T>(
 	let abortController = abortControllersByUrl.get(finalUrl.href)
 
 	if (abortController && abortPreviousRequest) {
-		console.debug('Aborting previous request', finalUrl)
+		// console.debug('Aborting previous request', finalUrl)
 		abortController.abort('Aborted previous request.')
 	}
 

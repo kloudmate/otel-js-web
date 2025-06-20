@@ -270,6 +270,6 @@ export function checkSessionRecorderType(recorderType: RecorderType): void {
 	const sessionState = getCurrentSessionState({ forceDiskRead: true })
 	if (sessionState && sessionState.rt !== recorderType) {
 		updateSessionStatus({ forceStore: true, forceNewSession: true, recorderType })
-		console.debug('Session recorder type changed, creating new session', { recorderType })
+		// console.debug('Session recorder type changed, creating new session', { recorderType })
 	}
 }

@@ -36,10 +36,11 @@ const getBaseConfig = (env, argv, options = {}) => {
 				bigIntLiteral: false,
 				const: false,
 				destructuring: false,
-				dynamicImport: false,
+				dynamicImport: true,
 				forOf: false,
 				module: false,
 			},
+			chunkFormat: false
 		},
 		resolve: {
 			extensions: ['.ts', '.js', '.json'],

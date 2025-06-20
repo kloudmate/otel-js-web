@@ -290,7 +290,7 @@ let _errorInstrumentation: SplunkErrorInstrumentation | undefined;
 let _postDocLoadInstrumentation: SplunkPostDocLoadResourceInstrumentation | undefined;
 let eventTarget: InternalEventTarget | undefined;
 
-export const SplunkRum: SplunkOtelWebType = {
+export const KloudMateRum: SplunkOtelWebType = {
   DEFAULT_AUTO_INSTRUMENTED_EVENTS,
   DEFAULT_AUTO_INSTRUMENTED_EVENT_NAMES,
 
@@ -307,7 +307,7 @@ export const SplunkRum: SplunkOtelWebType = {
   },
 
   _internalInit: function (options: Partial<SplunkOtelWebConfigInternal>) {
-    SplunkRum.init({
+    KloudMateRum.init({
       ...OPTIONS_DEFAULTS,
       ...options,
     });
@@ -318,7 +318,7 @@ export const SplunkRum: SplunkOtelWebType = {
 
     if (typeof window !== 'object') {
       throw Error(
-        'SplunkRum Error: This library is intended to run in a browser environment. Please ensure the code is evaluated within a browser context.',
+        'KloudMateRum Error: This library is intended to run in a browser environment. Please ensure the code is evaluated within a browser context.',
       );
     }
 
@@ -329,7 +329,7 @@ export const SplunkRum: SplunkOtelWebType = {
     }
 
     if (inited) {
-      console.warn('SplunkRum already initialized.');
+      console.warn('KloudMateRum already initialized.');
       return;
     }
 
@@ -341,19 +341,19 @@ export const SplunkRum: SplunkOtelWebType = {
     }
 
     if (typeof Symbol !== 'function') {
-      diag.error('SplunkRum: browser not supported, disabling instrumentation.');
+      diag.error('KloudMateRum: browser not supported, disabling instrumentation.');
       return;
     }
     
     if (options.disableBots && isBot(navigator.userAgent)) {
       this.disabledByBotDetection = true;
-      diag.error('SplunkRum will not be initialized, bots are not allowed.');
+      diag.error('KloudMateRum will not be initialized, bots are not allowed.');
       return;
     }
 
     if (options.disableAutomationFrameworks && navigator.webdriver) {
       this.disabledByAutomationFrameworkDetection = true;
-      diag.error('SplunkRum will not be initialized, automation frameworks are not allowed.');
+      diag.error('KloudMateRum will not be initialized, automation frameworks are not allowed.');
       return;
     }
 
@@ -374,7 +374,7 @@ export const SplunkRum: SplunkOtelWebType = {
 
     if (!processedOptions.debug) {
       if (!processedOptions.endpoint) {
-        throw new Error('SplunkRum.init( {endpoint: \'https://something\'} ) is required.');
+        throw new Error('KloudMateRum.init( {endpoint: \'https://something\'} ) is required.');
       } else if (!processedOptions.endpoint.startsWith('https') && !processedOptions.allowInsecureBeacon) {
         throw new Error('Not using https is unsafe, if you want to force it use allowInsecureBeacon option.');
       }
@@ -524,9 +524,6 @@ export const SplunkRum: SplunkOtelWebType = {
         initWebVitals(provider, vitalsConf);
     }
     
-    inited = true;
-    diag.info('SplunkRum.init() complete');
-
     if (options.sessionRecorder?.enabled) {
       import('@kloudmate/otel-web-session-recorder').then(module => {
         module.default.init({
@@ -537,6 +534,10 @@ export const SplunkRum: SplunkOtelWebType = {
         });
       });
     }
+
+    inited = true;
+    diag.info('KloudMateRum.init() complete');
+
   },
 
   deinit(force = false) {
@@ -655,4 +656,4 @@ export const SplunkRum: SplunkOtelWebType = {
   },
 };
 
-export default SplunkRum;
+export default KloudMateRum;

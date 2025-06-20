@@ -18,7 +18,7 @@
 
 const GLOBAL_OPENTELEMETRY_API_KEY = Symbol.for('opentelemetry.js.api.1')
 
-const GLOBAL_SPLUNK_RUM_KEY = 'splunk.rum'
+const GLOBAL_SPLUNK_RUM_KEY = 'KloudMate.rum'
 
 const GLOBAL_SPLUNK_RUM_VERSION_KEY = `${GLOBAL_SPLUNK_RUM_KEY}.version`
 

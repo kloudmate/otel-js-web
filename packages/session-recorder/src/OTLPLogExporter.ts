@@ -169,7 +169,7 @@ export default class OTLPLogExporter {
 
 		if (document.visibilityState === 'hidden') {
 			const compressedData = gzipSync(uint8ArrayData)
-			console.debug('🗜️ dbg: SYNC compress', { endpoint, headers, compressedData })
+			// console.debug('🗜️ dbg: SYNC compress', { endpoint, headers, compressedData })
 
 			// Use fetch with keepalive option instead of beacon.
 			// Fetch with keepalive option has limit of 64kB.
@@ -182,7 +182,7 @@ export default class OTLPLogExporter {
 		} else {
 			compressAsync(uint8ArrayData)
 				.then((compressedData) => {
-					console.debug('🗜️ dbg: ASYNC compress', { endpoint, headers, compressedData })
+					// console.debug('🗜️ dbg: ASYNC compress', { endpoint, headers, compressedData })
 					void sendByFetch(endpoint, { headers, body: compressedData }, onFetchSuccess)
 				})
 				.catch((error) => {
@@ -241,7 +241,7 @@ const sendByFetchInternal = async (
 			...fetchParams,
 		})
 
-		console.debug('📦 dbg: sendByFetch', { keepalive: fetchParams.keepalive })
+		// console.debug('📦 dbg: sendByFetch', { keepalive: fetchParams.keepalive })
 		onSuccess()
 	} catch (error) {
 		console.error('Could not sent data to BE - fetch', error)
