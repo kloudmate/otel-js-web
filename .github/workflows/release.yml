@@ -2,33 +2,32 @@ name: Release
 
 on:
   push:
-    branches:
-      - main
-      - develop 
+    branches: [ main ]
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Configure AWS Credentials Action for GitHub Actions
+        uses: aws-actions/configure-aws-credentials@v4.0.2
+        with:
+          aws-region: us-east-1
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-
+          node-version: '18.x'
       - name: Install dependencies
-        run: npm ci
-
-      - name: Compile Session Recorder
+        run: npm install
+      - name: Build
         run: npm run compile -w @kloudmate/otel-web-session-recorder
-
-      - name: Compile Web
+      - name: Build otel web
         run: npm run compile -w @kloudmate/otel-web
-
-      - name: Upload otel-web as artifact 
-        uses: actions/upload-artifact@v4
-        with:
-          name: otel-web
-          path: packages/web/dist/artifacts/otel-web.js
+      - name: Deploy
+        run: npm run deploy
+        env:
+          BUCKET_NAME: ${{ secrets.BUCKET_NAME }}
+          CDN_DISTRIBUTION_ID: ${{ secrets.CDN_DISTRIBUTION_ID }}
