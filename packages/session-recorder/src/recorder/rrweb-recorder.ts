@@ -53,7 +53,7 @@ export class RRWebRecorder extends Recorder {
 
 	private startRecording = () => {
 		this.stopRecording = record({
-			maskAllInputs: undefined,
+			maskAllInputs: false,
 			...this.config,
 			emit: (event) => {
 				const context: RecorderEmitContext = {
