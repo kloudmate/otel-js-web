@@ -47,8 +47,7 @@
 		"test:integration:remote": "npm run --ws --if-present test:integration:remote --",
 		"test:performance": "npm run --ws --if-present test:performance --",
 		"test:unit:ci": "npm run --ws --if-present test:unit:ci --",
-		"test:unit:ci-node": "npm run --ws --if-present test:unit:ci-node --",
-		"deploy": "node ./scripts/release-cdn.mjs"
+		"test:unit:ci-node": "npm run --ws --if-present test:unit:ci-node --"
 	},
 	"devDependencies": {
 		"@aws-sdk/client-cloudfront": "^3.774.0",
