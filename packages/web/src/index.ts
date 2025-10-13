@@ -467,9 +467,9 @@ export const KloudMateRum: SplunkOtelWebType = {
     fetch(`https://cdn.kloudmate.com/rum/js/v${VERSION}/otel-web.js`, {
       method: 'HEAD'
     }).then(resp => {
-      provider.resource.attributes['country'] = resp.headers.get("Cloudfront-Viewer-Country") || undefined;
-      provider.resource.attributes['city'] = resp.headers.get("CloudFront-Viewer-City") || undefined;
-      provider.resource.attributes['viewer.address'] = resp.headers.get("CloudFront-Viewer-Address") || undefined;
+      provider.resource.attributes['viewer.country'] = resp.headers.get("X-Viewer-Country") || undefined;
+      provider.resource.attributes['viewer.city'] = resp.headers.get("X-Viewer-City") || undefined;
+      provider.resource.attributes['viewer.ip'] = resp.headers.get("X-Viewer-Ip") || undefined;
     });
 
     _deinitSessionTracking = initSessionTracking(
