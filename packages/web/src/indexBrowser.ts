@@ -20,7 +20,7 @@ import SplunkRum, { SplunkOtelWebType } from './index'
 
 declare global {
 	interface Window {
-		SplunkRum: SplunkOtelWebType | undefined
+		KloudMateRum: SplunkOtelWebType | undefined
 	}
 }
 
