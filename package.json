@@ -1,7 +1,7 @@
 {
 	"name": "@kloudmate/otel-web-dev-root",
 	"private": true,
-	"version": "0.2.0",
+	"version": "0.1.0",
 	"--workspaces": "Hardcoded so npm runs workspaces commands in order",
 	"workspaces": [
 		"packages/web",
