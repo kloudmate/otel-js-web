@@ -61,7 +61,7 @@ export class SplunkOTLPTraceExporter extends OTLPTraceExporter {
 
 		// Changed: Determine which exporter to use at the time of export
 		if (document.hidden && this._beaconSender && body.length <= 64000) {
-			this._beaconSender(this.url, body, { type: 'application/json', ...this._headers })
+			this._beaconSender(this.url, body, { 'Accept': 'application/json', 'Content-Type': 'application/json', ...this._headers })
 		} else if (this._xhrSender) {
 			this._xhrSender(this.url, body, {
 				// These headers may only be necessary for otel's collector,
