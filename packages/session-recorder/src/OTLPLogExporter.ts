@@ -31,6 +31,12 @@ import { suppressTracing } from '@opentelemetry/core'
 interface OTLPLogExporterConfig {
 	beaconUrl: string
 	debug?: boolean
+	/**
+	 * Whether to export any queued logs from previous sessions on construction.
+	 * Set to false for subsequent sessions to avoid exporting logs from previous session.
+	 * @default true
+	 */
+	exportQueuedLogs?: boolean
 	getResourceAttributes: () => JsonObject
 	headers?: Record<string, string>
 	sessionId: string
@@ -99,7 +105,9 @@ export default class OTLPLogExporter {
 
 	constructor(config: OTLPLogExporterConfig) {
 		this.config = config
-		this.exportQueuedLogs()
+		if (this.config.exportQueuedLogs !== false) {
+			this.exportQueuedLogs()
+		}
 	}
 
 	constructLogData(logs: Log[]): JsonObject {
