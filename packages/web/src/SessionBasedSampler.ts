@@ -92,7 +92,18 @@ export class SessionBasedSampler implements Sampler {
 		return `SessionBased{ratio=${this.ratio}, sampled=${this.sampled.toString()}, notSampled=${this.notSampled.toString()}}`
 	}
 
-	private _accumulate(sessionId: string): number {
+	/**
+	 * Check if a session should be sampled based on the session ID and ratio.
+	 * This method is useful for session replay sampling where you want to
+	 * determine if a specific session should be recorded.
+	 * @param sessionId - The session ID to check
+	 * @returns true if the session should be sampled/recorded
+	 */
+	isSessionSampled(sessionId: string): boolean {
+		return this._accumulate(sessionId) < this.upperBound
+	}
+
+	protected _accumulate(sessionId: string): number {
 		let accumulation = 0
 		for (let i = 0; i < sessionId.length / 8; i++) {
 			const pos = i * 8

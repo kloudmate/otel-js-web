@@ -63,6 +63,13 @@ export type SplunkRumRecorderConfig = {
 	 * with only RUM scope as it's visible to every user of your app
 	 **/
 	rumAccessToken?: string;
+
+	/**
+	 * Ratio of sessions to record (0.0 to 1.0).
+	 * Example: 0.5 records approximately 50% of sessions.
+	 * @default 1 (all sessions are recorded)
+	 */
+	sampleRate?: number;
 } & RRWebRecorderPublicConfig &
 	SplunkRecorderPublicConfig;
 
@@ -79,8 +86,32 @@ let sessionStartTime = 0;
 let paused = false;
 let eventCounter = 1;
 let logCounter = 1;
+let currentSampleRate: number = 1;
+let isCurrentSessionSampled: boolean = true;
 
 let recorder: Recorder | undefined;
+
+/**
+ * Check if a session should be sampled based on the sample rate.
+ * Uses the same algorithm as SessionBasedSampler for consistency.
+ */
+function checkSessionSampled(sessionId: string, sampleRate: number): boolean {
+	if (sampleRate >= 1) {
+		return true;
+	}
+	if (sampleRate <= 0) {
+		return false;
+	}
+	// Use the same accumulation algorithm as SessionBasedSampler
+	const upperBound = Math.floor(sampleRate * 0xffffffff);
+	let accumulation = 0;
+	for (let i = 0; i < sessionId.length / 8; i++) {
+		const pos = i * 8;
+		const part = parseInt(sessionId.slice(pos, pos + 8), 16);
+		accumulation = (accumulation ^ part) >>> 0;
+	}
+	return accumulation < upperBound;
+}
 
 const SplunkRumRecorder = {
 	get inited(): boolean {
@@ -141,8 +172,12 @@ const SplunkRumRecorder = {
 			realm,
 			rumAccessToken,
 			recorder: recorderType = 'rrweb',
+			sampleRate = 1,
 			...initRecorderConfig
 		} = config;
+
+		// Store sample rate for session change checks
+		currentSampleRate = sampleRate;
 
 		const isSplunkRecorder = recorderType === 'splunk';
         
@@ -209,6 +244,17 @@ const SplunkRumRecorder = {
 		const processor = new BatchLogProcessor(exporter);
 
 		lastKnownSession = SplunkRum.getSessionId();
+
+		// Check if initial session should be sampled
+		isCurrentSessionSampled = lastKnownSession ? checkSessionSampled(lastKnownSession, currentSampleRate) : true;
+		if (!isCurrentSessionSampled) {
+			// Session is not sampled, skip recording
+			if (debug) {
+				console.debug('KloudmateSessionRecorder: Session not sampled', { sessionId: lastKnownSession, sampleRate: currentSampleRate });
+			}
+			inited = true;
+			return;
+		}
         
 		sessionStartTime = Date.now();
 
@@ -223,16 +269,33 @@ const SplunkRumRecorder = {
 					return;
 				}
 
+				// New session - recheck sampling
+				const newSessionId = SplunkRum.getSessionId();
+				lastKnownSession = newSessionId;
+				isCurrentSessionSampled = newSessionId ? checkSessionSampled(newSessionId, currentSampleRate) : true;
+				
+				if (!isCurrentSessionSampled) {
+					// New session is not sampled, stop recording
+					if (debug) {
+						console.debug('KloudmateSessionRecorder: Session not sampled', { sessionId: newSessionId, sampleRate: currentSampleRate });
+					}
+					return;
+				}
+
 				if (SplunkRum._internalOnExternalSpanCreated) {
 					SplunkRum._internalOnExternalSpanCreated();
 					isExtended = true;
 				}
 
-				lastKnownSession = SplunkRum.getSessionId();
 				sessionStartTime = Date.now();
 				eventCounter = 1;
 				logCounter = 1;
 				emitContext.onSessionChanged();
+			}
+
+			// Skip emit if current session is not sampled
+			if (!isCurrentSessionSampled) {
+				return;
 			}
 
 			if (emitContext.startTime > sessionStartTime + MAX_RECORDING_LENGTH) {

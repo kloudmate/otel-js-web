@@ -63,4 +63,26 @@ describe('Session based sampler', () => {
 		trackingHandle.deinit()
 		trackingHandle.clearSession()
 	})
+
+	it('isSessionSampled returns correct sampling decision based on session ID and ratio', () => {
+		const sampler = new SessionBasedSampler({ ratio: 0.5 })
+
+		// Low session id (all zeros) should always be sampled
+		const lowSessionId = '0'.repeat(32)
+		expect(sampler.isSessionSampled(lowSessionId), 'low session id should be sampled').toBe(true)
+
+		// High session id (high value) should not be sampled at 50% ratio
+		const highSessionId = 'ffffffffffffffffffffffffffffffff'
+		expect(sampler.isSessionSampled(highSessionId), 'high session id should not be sampled').toBe(false)
+	})
+
+	it('isSessionSampled handles edge cases', () => {
+		// 100% sampling rate - all sessions should be sampled
+		const samplerAll = new SessionBasedSampler({ ratio: 1 })
+		expect(samplerAll.isSessionSampled('ffffffffffffffffffffffffffffffff')).toBe(true)
+
+		// 0% sampling rate - no sessions should be sampled
+		const samplerNone = new SessionBasedSampler({ ratio: 0 })
+		expect(samplerNone.isSessionSampled('00000000000000000000000000000000')).toBe(false)
+	})
 })
