@@ -530,6 +530,7 @@ export const KloudMateRum: SplunkOtelWebType = {
           endpoint: options.endpoint,
           rumAccessToken: options.rumAccessToken,
           debug: options.debug,
+          sampleRate: options.sessionRecorder?.sampleRate,
           ...options.sessionRecorder?.options
         });
       });

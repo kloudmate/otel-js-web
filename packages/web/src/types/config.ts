@@ -76,6 +76,13 @@ export interface SessionRecorderConfig {
   enabled?: boolean
 
   /**
+   * Ratio of sessions to record (0.0 to 1.0).
+   * Example: 0.5 records approximately 50% of sessions.
+   * @default 1 (all sessions are recorded)
+   */
+  sampleRate?: number
+
+  /**
    * Config options passed to rrweb's record()
    */
   options?: RRWebOptions
