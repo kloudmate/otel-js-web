@@ -16,7 +16,7 @@
  *
  */
 
-import { STACK_TRACE_URL_PATTER } from '../src/SplunkErrorInstrumentation'
+import { STACK_TRACE_URL_PATTER, trimInternalStackFrames } from '../src/SplunkErrorInstrumentation'
 import { describe, it, expect, beforeEach } from 'vitest'
 
 export function generateFilePaths(domainCount: number, pathCount: number): string[] {
@@ -247,5 +247,75 @@ describe('SplunkErrorInstrumentation', () => {
 		}
 		const urlArr = [...urls]
 		expect(urlArr.sort()).toStrictEqual(randomPaths.sort())
+	})
+})
+
+const SELF_URL = 'https://cdn.kloudmate.com/rum/js/v0.2.0/otel-web.js'
+
+describe('trimInternalStackFrames', () => {
+	it('strips leading SDK frames from a v8-style stack, keeping caller frames', () => {
+		const rawStack = [
+			'Error',
+			`    at generateStack (${SELF_URL}:5:100)`,
+			`    at SplunkErrorInstrumentation.reportString (${SELF_URL}:5:200)`,
+			`    at SplunkErrorInstrumentation.report (${SELF_URL}:5:300)`,
+			'    at doWork (https://app.example.com/main.js:10:20)',
+			'    at onClick (https://app.example.com/main.js:20:30)',
+		].join('\n')
+
+		const trimmed = trimInternalStackFrames(rawStack, SELF_URL, 'Error')
+
+		expect(trimmed).toBeTruthy()
+		expect(trimmed?.startsWith('Error\n')).toBeTruthy()
+		expect(trimmed).toContain('doWork')
+		expect(trimmed).toContain('onClick')
+		// SDK frames must be gone.
+		expect(trimmed).not.toContain('otel-web.js')
+		expect(trimmed).not.toContain('reportString')
+	})
+
+	it('strips leading SDK frames from a gecko-style (header-less) stack', () => {
+		const rawStack = [
+			`generateStack@${SELF_URL}:5:100`,
+			`reportString@${SELF_URL}:5:200`,
+			'doWork@https://app.example.com/main.js:10:20',
+			'onClick@https://app.example.com/main.js:20:30',
+		].join('\n')
+
+		const trimmed = trimInternalStackFrames(rawStack, SELF_URL, 'Error')
+
+		expect(trimmed).toContain('doWork')
+		expect(trimmed).not.toContain('otel-web.js')
+	})
+
+	it('returns undefined when every frame belongs to the SDK', () => {
+		const rawStack = [
+			'Error',
+			`    at generateStack (${SELF_URL}:5:100)`,
+			`    at SplunkErrorInstrumentation.reportString (${SELF_URL}:5:200)`,
+		].join('\n')
+
+		expect(trimInternalStackFrames(rawStack, SELF_URL, 'Error')).toBeUndefined()
+	})
+
+	it('returns undefined when there are no URL-bearing frames', () => {
+		const rawStack = ['Error', '    at <anonymous>', '    at <anonymous>'].join('\n')
+
+		expect(trimInternalStackFrames(rawStack, SELF_URL, 'Error')).toBeUndefined()
+	})
+
+	it('falls back to keeping frames from the first URL when the SDK url is unknown', () => {
+		const rawStack = [
+			'Error',
+			`    at generateStack (${SELF_URL}:5:100)`,
+			'    at doWork (https://app.example.com/main.js:10:20)',
+		].join('\n')
+
+		// Without a known self url we cannot reliably identify SDK frames, so a
+		// couple of leading SDK frames may remain — but the caller frame is still
+		// present, which keeps the synthesized stack usable.
+		const trimmed = trimInternalStackFrames(rawStack, undefined, 'Error')
+
+		expect(trimmed).toContain('doWork')
 	})
 })

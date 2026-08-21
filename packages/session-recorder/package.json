@@ -1,6 +1,6 @@
 {
 	"name": "@kloudmate/otel-web-session-recorder",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "Kloudmate distribution of rrweb for recording session",
 	"repository": "github:kloudmate/otel-js-web",
 	"scripts": {
@@ -35,7 +35,7 @@
 		"type-fest": "^4.37.0"
 	},
 	"peerDependencies": {
-		"@kloudmate/otel-web": "^0.1.0"
+		"@kloudmate/otel-web": "^0.2.0"
 	},
 	"devDependencies": {
 		"@swc/core": "^1.11.29",

@@ -508,9 +508,75 @@ describe('test stack length', () => {
 		const errorSpan = capturer.spans.find((span) => span.attributes.component === 'error')
 		expect(errorSpan).toBeTruthy()
 		expect((errorSpan.attributes['error.stack'] as string).includes('recurAndThrow')).toBeTruthy()
-		expect((errorSpan.attributes['error.stack'] as string).length <= 4096).toBeTruthy()
+		expect((errorSpan.attributes['error.stack'] as string).length <= 16384).toBeTruthy()
 		expect((errorSpan.attributes['error.message'] as string).includes('something')).toBeTruthy()
 		expect((errorSpan.attributes['error.message'] as string).includes('bad thing')).toBeTruthy()
+	})
+})
+
+// Build an Error whose stack is longer than any cap we test, so truncation is
+// deterministic regardless of the runtime's real stack format/length.
+function makeErrorWithHugeStack(): Error {
+	const err = new Error('kaboom')
+	err.stack = 'Error: kaboom\n' + '    at http://example.com/app.js:1:1\n'.repeat(2000)
+	return err
+}
+
+const settle = () => new Promise<void>((resolve) => setTimeout(resolve, 100))
+
+describe('test error attribute limits', () => {
+	let capturer: SpanCapturer
+
+	afterEach(() => {
+		deinit()
+	})
+
+	it('caps error.message at the raised default of 8192', async () => {
+		capturer = new SpanCapturer()
+		initWithDefaultConfig(capturer)
+
+		SplunkRum.error('x'.repeat(20000))
+		await settle()
+
+		const errorSpan = capturer.spans.find((span) => span.attributes.component === 'error')
+		expect(errorSpan).toBeTruthy()
+		expect((errorSpan.attributes['error.message'] as string).length).toBe(8192)
+	})
+
+	it('caps error.stack at the raised default of 16384', async () => {
+		capturer = new SpanCapturer()
+		initWithDefaultConfig(capturer)
+
+		SplunkRum.error(makeErrorWithHugeStack())
+		await settle()
+
+		const errorSpan = capturer.spans.find((span) => span.attributes.component === 'error')
+		expect(errorSpan).toBeTruthy()
+		expect((errorSpan.attributes['error.stack'] as string).length).toBe(16384)
+	})
+
+	it('respects a configured messageLengthLimit', async () => {
+		capturer = new SpanCapturer()
+		initWithDefaultConfig(capturer, { instrumentations: { errors: { messageLengthLimit: 50 } } })
+
+		SplunkRum.error('y'.repeat(20000))
+		await settle()
+
+		const errorSpan = capturer.spans.find((span) => span.attributes.component === 'error')
+		expect(errorSpan).toBeTruthy()
+		expect((errorSpan.attributes['error.message'] as string).length).toBe(50)
+	})
+
+	it('respects a configured stackLengthLimit', async () => {
+		capturer = new SpanCapturer()
+		initWithDefaultConfig(capturer, { instrumentations: { errors: { stackLengthLimit: 200 } } })
+
+		SplunkRum.error(makeErrorWithHugeStack())
+		await settle()
+
+		const errorSpan = capturer.spans.find((span) => span.attributes.component === 'error')
+		expect(errorSpan).toBeTruthy()
+		expect((errorSpan.attributes['error.stack'] as string).length).toBe(200)
 	})
 })
 
