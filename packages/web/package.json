@@ -1,6 +1,6 @@
 {
 	"name": "@kloudmate/otel-web",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "Kloudmate distribution of Open Telemetry for browser environment.",
 	"repository": "github:kloudmate/otel-js-web",
 	"scripts": {

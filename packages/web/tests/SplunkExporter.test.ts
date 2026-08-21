@@ -119,9 +119,9 @@ describe('SplunkZipkinExporter', () => {
 		})
 
 		const dummySpan = buildDummySpan({
-			name: 'a'.repeat(5000),
+			name: 'a'.repeat(20000),
 			attributes: {
-				longValue: 'b'.repeat(5001),
+				longValue: 'b'.repeat(20001),
 				shortValue: 'c'.repeat(4000),
 			},
 		})
@@ -129,8 +129,8 @@ describe('SplunkZipkinExporter', () => {
 		expect(xhrSenderMock).toHaveBeenCalledTimes(1)
 		const sendXhrArgs = xhrSenderMock.mock.calls[0]
 		const sentSpan = JSON.parse(sendXhrArgs[1])[0]
-		expect(sentSpan.name).toBe('a'.repeat(4096))
-		expect(sentSpan.tags['longValue']).toBe('b'.repeat(4096))
+		expect(sentSpan.name).toBe('a'.repeat(16384))
+		expect(sentSpan.tags['longValue']).toBe('b'.repeat(16384))
 		expect(sentSpan.tags['shortValue']).toBe('c'.repeat(4000))
 	})
 

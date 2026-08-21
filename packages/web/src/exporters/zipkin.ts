@@ -32,7 +32,11 @@ import {
 } from './common'
 import { hasToString } from '../types'
 
-const MAX_VALUE_LIMIT = 4096
+// Blanket cap applied to every tag value on the Zipkin export path. Kept in sync
+// with the error instrumentation's stack limit so raised `error.stack` values
+// aren't re-truncated here. A single error span (message + stack + small
+// attributes) stays well under the collector's ~1 MB per-record limit.
+const MAX_VALUE_LIMIT = 16384
 const SERVICE_NAME = 'browser'
 
 // TODO: upstream proper exports from ZipkinExporter

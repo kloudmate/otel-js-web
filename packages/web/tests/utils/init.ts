@@ -24,6 +24,7 @@ import { getNullableStore } from '../../src/session'
 
 export const initWithDefaultConfig = (capturer: SpanCapturer, additionalOptions = {}): void => {
 	SplunkRum._internalInit({
+		endpoint: 'http://127.0.0.1:8888',
 		beaconEndpoint: 'http://127.0.0.1:8888/v1/trace',
 		allowInsecureBeacon: true,
 		applicationName: 'my-app',

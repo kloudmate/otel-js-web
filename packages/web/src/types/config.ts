@@ -19,6 +19,7 @@ import { Attributes } from '@opentelemetry/api'
 import { WebTracerConfig } from '@opentelemetry/sdk-trace-web'
 import { InstrumentationConfig } from '@opentelemetry/instrumentation'
 import { FetchInstrumentationConfig } from '@opentelemetry/instrumentation-fetch'
+import { SplunkErrorInstrumentationConfig } from '../SplunkErrorInstrumentation'
 import { SplunkUserInteractionInstrumentationConfig } from '../SplunkUserInteractionInstrumentation'
 import { SplunkPostDocLoadResourceInstrumentationConfig } from '../SplunkPostDocLoadResourceInstrumentation'
 import { SocketIoClientInstrumentationConfig } from '../SplunkSocketIoClientInstrumentation'
@@ -30,7 +31,7 @@ import { record } from 'rrweb'
 export interface SplunkOtelWebOptionsInstrumentations {
 	connectivity?: boolean | InstrumentationConfig
 	document?: boolean | InstrumentationConfig
-	errors?: boolean
+	errors?: boolean | SplunkErrorInstrumentationConfig
 	fetch?: boolean | FetchInstrumentationConfig
 	interactions?: boolean | SplunkUserInteractionInstrumentationConfig
 	longtask?: boolean | InstrumentationConfig
