@@ -2,7 +2,7 @@
 
 If the version of Open Telemetry is unspecified for a version, then it is the same as in the previous release.
 
-## 0.2.0
+## 0.1.0
 * @kloudmate/otel-web
 	* feat: raise the caps on captured error data and make them configurable.
 		- `error.message` default cap raised from **1024 → 8192** characters.
