@@ -2,6 +2,21 @@
 
 If the version of Open Telemetry is unspecified for a version, then it is the same as in the previous release.
 
+## 0.2.0
+* @kloudmate/otel-web
+	* feat: raise the caps on captured error data and make them configurable.
+		- `error.message` default cap raised from **1024 → 8192** characters.
+		- `error.stack` default cap raised from **4096 → 16384** characters.
+		- Both are now configurable via `instrumentations.errors.messageLengthLimit` and
+		  `instrumentations.errors.stackLengthLimit`.
+		- The Zipkin exporter's blanket per-tag cap was raised to match (4096 → 16384) so raised
+		  stacks aren't re-truncated on that export path.
+	* feat: synthesize a stack trace for errors that don't carry one of their own
+	  (e.g. `console.error('...')`, thrown strings, and other non-Error values), so these
+	  now also report a usable `error.stack`. Instrumentation frames are stripped so the
+	  synthesized stack begins at the caller's code.
+	* The emitted span attribute keys (`error.message`, `error.stack`) are unchanged.
+
 ## 0.22.0
 * @splunk/rum-build-plugins
 	* feat: Add `@splunk/rum-build-plugins` and new `SplunkRumWebpackPlugin`. 
